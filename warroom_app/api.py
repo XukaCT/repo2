@@ -142,7 +142,9 @@ def create_saved_search(name, sector=None, state=None, min_value=0, max_value=0,
         "state": state,
         "min_value": min_value,
         "max_value": max_value,
-        "notifications": 1 if notifications else 0
+        "notifications": 1 if notifications else 0,
+        "match_count": 0,           
+        "last_matched": None
     })
     doc.insert()
     return doc.as_dict()

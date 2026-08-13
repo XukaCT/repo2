@@ -5,6 +5,10 @@ app_description = "frontend custom app"
 app_email = "123@gmail.com"
 app_license = "mit"
 
+
+website_route_rules = [
+    {"from_route": "/warroom/<path:app_path>", "to_route": "warroom"},
+]
 # Apps
 # ------------------
 
