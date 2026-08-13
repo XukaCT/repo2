@@ -1,0 +1,120 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-08-13 15:07:01.636335",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "war_room_tender_section",
+  "title",
+  "agency",
+  "description",
+  "contract_value",
+  "sector",
+  "state",
+  "status",
+  "close_date",
+  "published_date",
+  "source_name",
+  "source_id",
+  "source_url"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "title"
+  },
+  {
+   "fieldname": "agency",
+   "fieldtype": "Data",
+   "label": "Agency"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  },
+  {
+   "fieldname": "contract_value",
+   "fieldtype": "Currency",
+   "label": "Contract Value"
+  },
+  {
+   "fieldname": "sector",
+   "fieldtype": "Select",
+   "label": "Sector",
+   "options": "facility_management\\nconstruction\\ncleaning\\nit_services\\nhealthcare\\ntransportation\\nutilities\\nother"
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Select",
+   "label": "State",
+   "options": "NSW\\nVIC\\nQLD\\nSA\\nWA\\nACT\\nNT\\nTAS\\nFederal"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "open\\nclosed\\nupcoming\\nactive"
+  },
+  {
+   "fieldname": "close_date",
+   "fieldtype": "Date",
+   "label": "Close Date"
+  },
+  {
+   "fieldname": "published_date",
+   "fieldtype": "Date",
+   "label": "Published Date"
+  },
+  {
+   "fieldname": "source_name",
+   "fieldtype": "Data",
+   "label": "Source Name"
+  },
+  {
+   "fieldname": "source_id",
+   "fieldtype": "Data",
+   "label": "Source ID"
+  },
+  {
+   "fieldname": "source_url",
+   "fieldtype": "Data",
+   "label": "Source URL"
+  },
+  {
+   "fieldname": "war_room_tender_section",
+   "fieldtype": "Section Break",
+   "label": "War Room Tender"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-13 15:12:52.542702",
+ "modified_by": "Administrator",
+ "module": "Warroom",
+ "name": "War Room Tender",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

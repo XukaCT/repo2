@@ -1,0 +1,97 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-08-13 15:16:02.075825",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "war_room_saved_search_section",
+  "search_name",
+  "sector",
+  "state",
+  "min_value",
+  "max_value",
+  "notifications",
+  "match_count",
+  "last_matched"
+ ],
+ "fields": [
+  {
+   "fieldname": "war_room_saved_search_section",
+   "fieldtype": "Section Break",
+   "label": "War Room Saved Search"
+  },
+  {
+   "fieldname": "search_name",
+   "fieldtype": "Data",
+   "label": "Search Name"
+  },
+  {
+   "fieldname": "sector",
+   "fieldtype": "Select",
+   "label": "Sector",
+   "options": "facility_management\\nconstruction\\ncleaning\\nit_services\\nhealthcare\\ntransportation\\nutilities\\nother"
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Select",
+   "label": "State",
+   "options": "NSW\\nVIC\\nQLD\\nSA\\nWA\\nACT\\nNT\\nTAS\\nFederal"
+  },
+  {
+   "fieldname": "min_value",
+   "fieldtype": "Currency",
+   "label": "Min Value"
+  },
+  {
+   "fieldname": "max_value",
+   "fieldtype": "Currency",
+   "label": "Max Value"
+  },
+  {
+   "default": "1",
+   "fieldname": "notifications",
+   "fieldtype": "Check",
+   "label": "Notifications"
+  },
+  {
+   "default": "0",
+   "fieldname": "match_count",
+   "fieldtype": "Int",
+   "label": "Match Count"
+  },
+  {
+   "fieldname": "last_matched",
+   "fieldtype": "Datetime",
+   "label": "Last Matched"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-13 15:20:35.215556",
+ "modified_by": "Administrator",
+ "module": "Warroom",
+ "name": "War Room Saved Search",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

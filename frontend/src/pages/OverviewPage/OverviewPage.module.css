@@ -1,0 +1,527 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1400px;
+}
+
+/* ── Welcome strip ── */
+.welcomeStrip {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  min-height: 130px;
+}
+
+.welcomeLeft {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 22px 28px;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+/* Subtle purple glow */
+.welcomeLeft::before {
+  content: '';
+  position: absolute;
+  top: -40px; left: -40px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.welcomeTextBlock { display: flex; flex-direction: column; gap: 3px; }
+
+.welcomeHeading {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.welcomeName {
+  background: var(--grad-purple);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.welcomeSub {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.welcomeBadges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.alertBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  color: #F87171;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.2);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.alertBadge:hover {
+  background: rgba(239,68,68,0.16);
+  border-color: rgba(239,68,68,0.35);
+}
+
+.activeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  color: #34D399;
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.2);
+}
+
+/* ── Strip divider ── */
+.stripDivider {
+  width: 1px;
+  background: var(--card-border);
+  flex-shrink: 0;
+  margin: 16px 0;
+}
+
+/* ── Right panel ── */
+.welcomeRight {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .stripDivider  { display: none; }
+  .welcomeRight  { display: none; }
+}
+
+/* ── New tenders block ── */
+.newTendersBlock {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 20px 24px;
+  min-width: 170px;
+}
+
+.newTendersHeader {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 2px;
+}
+
+.newTendersIcon { color: var(--accent-lighter); flex-shrink: 0; }
+
+.newTendersLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.newTendersCount {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-lighter);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.newTendersSub {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.rightInnerDivider {
+  width: 1px;
+  background: var(--card-border);
+  flex-shrink: 0;
+  margin: 16px 0;
+}
+
+/* ── Ingestion status block ── */
+.ingestionBlock {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 24px;
+  min-width: 220px;
+}
+
+.ingestionHeader {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 2px;
+}
+
+.ingestionIcon { color: #10B981; flex-shrink: 0; }
+
+.ingestionLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sourceRows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.sourceStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sourceStatusDot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sourceStatusLabel {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.sourceStatusCount {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sourceStatusPct {
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 30px;
+  text-align: right;
+}
+
+.noSources {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* shimmer for loading state */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 0%,
+    var(--bg-overlay)  50%,
+    var(--bg-elevated) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Stat grid — 4 columns ── */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+@media (max-width: 1100px) { .statGrid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px)  { .statGrid { grid-template-columns: 1fr; } }
+
+/* ── Charts row — 2 equal columns ── */
+.chartsRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) { .chartsRow { grid-template-columns: 1fr; } }
+
+/* ── Bottom row: feed (wider) + side column ── */
+.bottomRow {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  align-items: stretch;
+}
+@media (max-width: 1000px) {
+  .bottomRow { grid-template-columns: 1fr; }
+}
+.feedWrap {
+  min-width: 0;
+  display: flex;
+}
+.sideWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Mini stats card ── */
+.miniCard {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+}
+.miniHeader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+.miniIcon { color: var(--accent-lighter); }
+.miniGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.miniStat {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+.miniLabel {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.miniValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 4px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Legacy (kept for safety) ── */
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.heading {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.headingSub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.dataTag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-lighter);
+  background: var(--accent-dim);
+  border: 1px solid var(--border-accent);
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Status breakdown cards — 3 columns ── */
+.statusGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 900px) { .statusGrid { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .statusGrid { grid-template-columns: repeat(2, 1fr); } }
+
+.statusCard {
+  border: 1px solid;
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.statusCard:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+
+.statusCardTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusIconWrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statusLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex: 1;
+}
+
+.statusArrow {
+  opacity: 0.5;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.statusCard:hover .statusArrow {
+  opacity: 1;
+  transform: translateX(3px);
+}
+
+.statusCardMid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statusCount {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusDesc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.statusDivider {
+  height: 1px;
+  opacity: 0.5;
+}
+
+.statusCardBottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statusValueLabel {
+  font-size: 11px;
+  color: var(--text-dim);
+  flex: 1;
+  font-weight: 500;
+}
+
+.statusValue {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Stat grid header with time window picker ── */
+.statGridHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.statGridLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statGridLabelText {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.windowPicker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 3px;
+}
+
+.windowBtn {
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.windowBtn:hover { color: var(--text-secondary); }
+
+.windowBtnActive {
+  background: var(--card-bg);
+  color: var(--accent-lighter);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-accent);
+}

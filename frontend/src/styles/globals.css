@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg-base); color: var(--text-primary); line-height: 1.5; }
+img, svg { display: block; max-width: 100%; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+
+/* Sonner toasts */
+.appToast {
+  background: color-mix(in srgb, var(--card-bg) 94%, transparent) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg), 0 0 24px var(--accent-dim) !important;
+  font-family: var(--font-sans) !important;
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+}
+
+.appToastTitle {
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.appToastTitle strong {
+  color: var(--text-primary);
+  font-weight: 750;
+}
+
+.appToastDescription {
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+}
+
+.appToastAction {
+  background: var(--accent-dim) !important;
+  color: var(--accent-lighter) !important;
+  border: 1px solid var(--border-accent) !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: 700 !important;
+}
+
+.appToastAction:hover {
+  background: color-mix(in srgb, var(--accent) 22%, transparent) !important;
+}
+
+.appToastCancel,
+.appToastClose {
+  color: var(--text-muted) !important;
+}
+
+.appToastIcon,
+.appToastLoader {
+  color: var(--accent-lighter) !important;
+}
+
+.appToastToggleOn {
+  border-color: color-mix(in srgb, var(--status-active) 42%, var(--card-border)) !important;
+  box-shadow: var(--shadow-lg), 0 0 24px color-mix(in srgb, var(--status-active) 22%, transparent) !important;
+}
+
+.appToastToggleOn .appToastIcon,
+.appToastToggleOn .appToastStateText {
+  color: var(--status-active) !important;
+}
+
+.appToastToggleOn .appToastAction {
+  background: color-mix(in srgb, var(--status-active) 14%, transparent) !important;
+  color: var(--status-active) !important;
+  border-color: color-mix(in srgb, var(--status-active) 34%, transparent) !important;
+}
+
+.appToastToggleOff {
+  border-color: color-mix(in srgb, var(--status-danger) 38%, var(--card-border)) !important;
+  box-shadow: var(--shadow-lg), 0 0 24px color-mix(in srgb, var(--status-danger) 18%, transparent) !important;
+}
+
+.appToastToggleOff .appToastIcon,
+.appToastToggleOff .appToastStateText {
+  color: var(--status-danger) !important;
+}
+
+.appToastToggleOff .appToastAction {
+  background: color-mix(in srgb, var(--status-danger) 12%, transparent) !important;
+  color: #F87171 !important;
+  border-color: color-mix(in srgb, var(--status-danger) 30%, transparent) !important;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }

@@ -1,0 +1,930 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 1400px;
+  }
+  
+  /* ── Page header ── */
+  .pageHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  
+  .heading {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  
+  .headingAccent {
+    color: var(--accent-lighter);
+    font-weight: 500;
+  }
+  
+  .headingSub {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  
+  .headerRight {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  
+  .livePill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 600;
+    color: #34D399;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.25);
+  }
+  
+  .liveDot {
+    display: block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 6px #10B981;
+  }
+  
+  .totalPill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-lighter);
+    background: var(--accent-dim);
+    border: 1px solid var(--border-accent);
+  }
+  
+  /* ── Main grid: map + sector ── */
+  .mainGrid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) { .mainGrid { grid-template-columns: 1fr; } }
+  
+  /* ── Map card ── */
+  .mapCard {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-xl);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .mapCardHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  
+  .mapCardTitle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  
+  .mapCardSub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 3px;
+  }
+  
+  .viewAllBtn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent-lighter);
+    background: var(--accent-dim);
+    border: 1px solid var(--border-accent);
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .viewAllBtn:hover { background: rgba(124,58,237,0.2); }
+  
+  /* ── Map container ── */
+  .mapContainer {
+    display: flex;
+    gap: 0;
+    position: relative;
+    min-height: 400px;
+  }
+  
+  .mapSvgWrap {
+    flex: 1;
+    position: relative;
+    min-height: 380px;
+    --map-label: rgba(240,246,252,0.9);
+    --map-label-active: #ffffff;
+    --map-label-shadow: rgba(0,0,0,0.55);
+    --map-callout-line: rgba(240,246,252,0.5);
+  }
+
+  :global([data-theme='light']) .mapSvgWrap {
+    --map-label: rgba(15,23,42,0.82);
+    --map-label-active: #0f172a;
+    --map-label-shadow: rgba(255,255,255,0.75);
+    --map-callout-line: rgba(15,23,42,0.42);
+  }
+  
+  .mapSvg {
+    width: 100%;
+    height: auto;
+    max-height: 440px;
+  }
+  
+  /* ── Map tooltip ── */
+  .mapTooltip {
+    position: absolute;
+    pointer-events: none;
+    z-index: 20;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-lg);
+    padding: 12px 14px;
+    min-width: 180px;
+    max-width: 240px;
+    box-shadow: var(--shadow-lg);
+    transform: translate3d(0, 0, 0);
+  }
+  
+  .tooltipHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  
+  .tooltipDot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  
+  .tooltipRows { display: flex; flex-direction: column; gap: 5px; }
+  
+  .tooltipRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 12px;
+  }
+  .tooltipRow span { color: var(--text-dim); }
+  .tooltipRow strong { color: var(--text-primary); font-weight: 600; }
+  
+  .tooltipCta {
+    margin-top: 8px;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
+  }
+  
+  /* ── State panel ── */
+  .statePanel {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 440px;
+  }
+  
+  .statePanelHeader {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  
+  .statePanelTitle {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .statePanelDot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  
+  .statePanelTitle h3 {
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  
+  .statePanelSub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+  
+  .statePanelClose {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    transition: var(--transition-fast);
+  }
+  .statePanelClose:hover { background: var(--bg-elevated); color: var(--text-primary); }
+  
+  .statePanelList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .statePanelList::-webkit-scrollbar { width: 3px; }
+  .statePanelList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  
+  .statePanelEmpty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 16px;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--text-dim);
+  }
+  
+  .stateTenderCard {
+    padding: 10px 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    transition: border-color 0.15s;
+  }
+  .stateTenderCard:hover { border-color: var(--border-hover); }
+  
+  .stateTenderTop {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  
+  .stateTenderTitle {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .stateTenderLink {
+    color: var(--text-dim);
+    flex-shrink: 0;
+    padding: 2px;
+    transition: color 0.15s;
+  }
+  .stateTenderLink:hover { color: var(--accent-lighter); }
+  
+  .stateTenderMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  
+  .stateTenderMetaItem {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  
+  .stateTenderSkeleton {
+    padding: 10px 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  
+  /* ── Map legend ── */
+  .mapLegend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 4px;
+    border-top: 1px solid var(--border);
+  }
+  
+  .legendItem {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .legendDot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  
+  .legendState {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  
+  .legendCount {
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  /* ── Sector card ── */
+  .sectorCard {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-xl);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;           /* ← fills the grid row height */
+    box-sizing: border-box;
+  }
+  
+  .sectorCardHeader { display: flex; flex-direction: column; gap: 3px; }
+  
+  .sectorCardTitle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  
+  .sectorCardSub {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  
+  .sectorList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;               /* ← grows to fill space between header and summary */
+  }
+  
+  .sectorRow { display: flex; flex-direction: column; gap: 5px; }
+  
+  .sectorRowTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  
+  .sectorRowLeft {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  
+  .sectorDot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  
+  .sectorLabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  
+  .sectorRowRight {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .sectorCount {
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .sectorValue {
+    font-size: 10.5px;
+    color: var(--text-dim);
+  }
+  
+  .sectorBarWrap {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-overlay);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  
+  .sectorBarFill {
+    height: 100%;
+    border-radius: 99px;
+  }
+  
+  .sectorRowSkeleton {
+    padding: 4px 0;
+  }
+  
+  .sectorSummary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+  }
+  
+  .sectorSummaryItem { display: flex; flex-direction: column; gap: 3px; }
+  
+  .sectorSummaryLabel {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  
+  .sectorSummaryValue {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  
+  /* ── Section header ── */
+  .sectionHeader {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  
+  .sectionTitle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  
+  .sectionSub {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  
+  /* ── Source cards grid ── */
+  .sourceGrid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  @media (max-width: 1250px) { .sourceGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px)  { .sourceGrid { grid-template-columns: 1fr; } }
+  
+  .sourceCard {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .sourceCard:hover {
+    border-color: var(--src-color, var(--border-hover));
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+  
+  .sourceCard::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--src-color, var(--accent));
+    opacity: 0.7;
+  }
+  
+  .sourceCardTop {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  
+  .sourceCardIcon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .sourceCardPctBadge {
+    font-size: 15px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    border: 1px solid;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .sourceCardLabel {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+  
+  .sourceCardDesc {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    line-height: 1.4;
+    margin-top: -4px;
+  }
+  
+  .sourceCardStats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  
+  .sourceCardStat { display: flex; flex-direction: column; gap: 2px; }
+  
+  .sourceCardStatLabel {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  
+  .sourceCardStatValue {
+    font-size: 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  
+  .sourceCardBarWrap {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-overlay);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  
+  .sourceCardBarFill {
+    height: 100%;
+    border-radius: 99px;
+  }
+  
+  .sourceCardSkeleton {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    display: flex;
+    gap: 14px;
+  }
+  
+  /* ── Metrics row ── */
+  .metricsRow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 1000px) { .metricsRow { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px)  { .metricsRow { grid-template-columns: 1fr; } }
+  
+  .metricCard {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .metricCard:hover { border-color: var(--border-hover); box-shadow: var(--shadow-sm); }
+  
+  .metricIcon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .metricLabel {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  
+  .metricValue {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .metricSub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  
+  /* ── Shared shimmer ── */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--bg-elevated) 0%,
+      var(--bg-overlay)  50%,
+      var(--bg-elevated) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 4px;
+  }
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  
+  /* ── State panel stats ── */
+  .statePanelStats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+  
+  .statPanelStatItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+  }
+  
+  .statPanelStatIcon {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .statPanelStatLabel {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .statPanelStatValue {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .statePanelViewBtn {
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 4px;
+    text-align: center;
+  }
+  .statePanelViewBtn:hover { opacity: 0.8; }
+  
+  /* ── Welcome strip (moved from OverviewPage) ── */
+  .welcomeStrip {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    min-height: 120px;
+  }
+  
+  .welcomeLeft {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    padding: 22px 28px;
+    flex: 1;
+    min-width: 0;
+    position: relative;
+  }
+  
+  .welcomeLeft::before {
+    content: '';
+    position: absolute;
+    top: -40px; left: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  
+  .welcomeTextBlock { display: flex; flex-direction: column; gap: 3px; }
+  
+  .welcomeHeading {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+  
+  .welcomeName {
+    background: var(--grad-purple);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .welcomeSub {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  
+  .welcomeBadges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .alertBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 600;
+    color: #F87171;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    cursor: pointer;
+    transition: var(--transition-fast);
+  }
+  .alertBadge:hover {
+    background: rgba(239,68,68,0.16);
+    border-color: rgba(239,68,68,0.35);
+  }
+  
+  .activeBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 600;
+    color: #34D399;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.2);
+  }
+  
+  .stripDivider {
+    width: 1px;
+    background: var(--card-border);
+    flex-shrink: 0;
+    margin: 16px 0;
+  }
+  
+  .welcomeRight {
+    display: flex;
+    align-items: center;
+    padding: 20px 24px;
+    flex-shrink: 0;
+  }
+  
+  @media (max-width: 860px) {
+    .stripDivider  { display: none; }
+    .welcomeRight  { display: none; }
+  }
+  
+  .newTendersBlock {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    min-width: 170px;
+  }
+  
+  .newTendersHeader {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 2px;
+  }
+  
+  .newTendersIcon { color: var(--accent-lighter); flex-shrink: 0; }
+  
+  .newTendersLabel {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  
+  .newTendersCount {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent-lighter);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .newTendersSub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
