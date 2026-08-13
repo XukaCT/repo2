@@ -125,7 +125,6 @@ def toggle_saved_search(id):
 def create_alert(title, description=None, type=None, priority=None):
     doc = frappe.get_doc({
         "doctype": "War Room Alert",
-        "name": frappe.generate_hash(length=12),
         "title": title,
         "description": description,
         "type": type or "system",
@@ -138,7 +137,6 @@ def create_alert(title, description=None, type=None, priority=None):
 def create_saved_search(name, sector=None, state=None, min_value=0, max_value=0, notifications=1):
     doc = frappe.get_doc({
         "doctype": "War Room Saved Search",
-        "name": frappe.generate_hash(length=12),
         "search_name": name,
         "sector": sector,
         "state": state,
