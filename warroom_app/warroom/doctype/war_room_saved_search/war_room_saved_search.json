@@ -24,20 +24,22 @@
   },
   {
    "fieldname": "search_name",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "label": "Search Name"
   },
   {
    "fieldname": "sector",
-   "fieldtype": "Select",
+   "fieldtype": "Data",
    "label": "Sector",
-   "options": "facility_management\\nconstruction\\ncleaning\\nit_services\\nhealthcare\\ntransportation\\nutilities\\nother"
+   "options": "Cleaning\nConstruction\nFacility Mgmt\nIT Services\nHealthcare\nTransportation\nOther\nAll Sectors",
+   "sort_options": 1
   },
   {
    "fieldname": "state",
    "fieldtype": "Select",
    "label": "State",
-   "options": "NSW\\nVIC\\nQLD\\nSA\\nWA\\nACT\\nNT\\nTAS\\nFederal"
+   "options": "NSW\nVIC\nQLD\nSA\nWA\nACT\nNT\nTAS\nAll States",
+   "sort_options": 1
   },
   {
    "fieldname": "min_value",
@@ -70,7 +72,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-13 15:20:35.215556",
+ "modified": "2026-08-13 19:36:11.008411",
  "modified_by": "Administrator",
  "module": "Warroom",
  "name": "War Room Saved Search",

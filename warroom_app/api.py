@@ -135,15 +135,33 @@ def create_alert(title, description=None, type=None, priority=None):
 
 @frappe.whitelist(allow_guest=False)
 def create_saved_search(name, sector=None, state=None, min_value=0, max_value=0, notifications=1):
+    # 1. Clean up Sector (e.g., converting "IT Services" to "it_services")
+    clean_sector = None
+    if sector and str(sector).lower() != "all":
+        clean_sector = str(sector)
+        
+    # 2. Clean up State (Ensure empty strings or "all" become None)
+    clean_state = None
+    if state and str(state).lower() != "all":
+        clean_state = str(state).upper()
+
+    # 3. Ensure Currency fields are strictly numbers (React often sends strings)
+    try:
+        clean_min = float(min_value) if min_value else 0.0
+        clean_max = float(max_value) if max_value else 0.0
+    except (ValueError, TypeError):
+        clean_min = 0.0
+        clean_max = 0.0
+
     doc = frappe.get_doc({
         "doctype": "War Room Saved Search",
         "search_name": name,
-        "sector": sector,
-        "state": state,
-        "min_value": min_value,
-        "max_value": max_value,
+        "sector": clean_sector,
+        "state": clean_state,
+        "min_value": clean_min,
+        "max_value": clean_max,
         "notifications": 1 if notifications else 0,
-        "match_count": 0,           
+        "match_count": 0,
         "last_matched": None
     })
     doc.insert()

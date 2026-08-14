@@ -1,22 +1,26 @@
 // ── useTenders.ts ────────────────────────────────────────────
 import { useQuery } from '@tanstack/react-query';
-import { tendersApi } from '../api/endpoints/tenders.api';
+import { getTenders, getTenderById, tendersApi } from '../api/endpoints/tenders.api';
 import type {
-  TenderFilters,
-  TenderListResponse,
   OverviewStats,
   SectorStat,
   StateStat,
   SourceStatsBySource,
 } from '../types/tender.types';
 
-export function useTenders(filters: TenderFilters = {}) {
-  return useQuery<TenderListResponse>({
+export function useTenders(filters: any = {}) {
+  return useQuery<{ items: any[], total: number, page: number, page_size: number, total_pages?: number }>({
     queryKey: ['tenders', filters],
-    queryFn: () => tendersApi.list(filters),
-    staleTime: 5 * 60 * 1000,
-    retry: 2,
-    placeholderData: (prev) => prev,
+    queryFn: () => getTenders(filters),
+    initialData: { items: [], total: 0, page: 1, page_size: 15 },
+  });
+}
+
+export function useTender(id: string) {
+  return useQuery<{ message: any }>({
+    queryKey: ['tender', id],
+    queryFn: () => getTenderById(id),
+    enabled: !!id, // Only run if an ID is passed
   });
 }
 

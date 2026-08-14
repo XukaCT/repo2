@@ -62,6 +62,18 @@ export interface ValueDistribution {
 // ── Hooks ─────────────────────────────────────────────────────
 const STALE = 5 * 60 * 1000;
 
+export function useAnalytics() {
+  // Adding the generic type here fixes the RecentActivityFeed errors!
+  return useQuery<{ total_bids: number, total_value: number, by_sector: any, by_state: any, recent_tenders: any[] }>({
+    queryKey: ['analytics'],
+    queryFn: async () => {
+      const res = await apiClient.get('warroom_app.api.get_analytics');
+      return res.data.message;
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
 export function useAnalyticsSummary() {
   return useQuery<AnalyticsSummary>({
     queryKey: ['analytics', 'summary'],

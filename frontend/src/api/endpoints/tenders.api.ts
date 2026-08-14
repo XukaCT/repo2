@@ -8,6 +8,19 @@ import type {
   SourceStatsBySource,
 } from '../../types/tender.types';
 
+// Pass the filters up to your get_tenders Python function
+export const getTenders = async (params: any = {}) => {
+  const res = await apiClient.get('warroom_app.api.get_tenders', { params });
+  // Frappe wraps your return dictionary in 'message'
+  return res.data.message; 
+};
+
+// Pass the ID to your get_tender_by_id Python function
+export const getTenderById = async (id: string) => {
+  const res = await apiClient.get('warroom_app.api.get_tender_by_id', { params: { id } });
+  return res.data.message;
+};
+
 export const tendersApi = {
   // Call Frappe function: get_tenders
   list: (filters: TenderFilters = {}) =>
