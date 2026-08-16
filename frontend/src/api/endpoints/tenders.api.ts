@@ -10,15 +10,26 @@ import type {
 
 // Pass the filters up to your get_tenders Python function
 export const getTenders = async (params: any = {}) => {
-  const res = await apiClient.get('warroom_app.api.get_tenders', { params });
-  // Frappe wraps your return dictionary in 'message'
-  return res.data.message; 
+  try {
+    const res = await apiClient.get('warroom_app.api.get_tenders', { params });
+    // Guarantee it never returns undefined
+    return res.data.message || { items: [], total: 0, page: 1, page_size: 15 };
+  } catch (error) {
+    console.error("Frappe server might be rebooting:", error);
+    // Return a safe empty state if the server is offline or restarting
+    return { items: [], total: 0, page: 1, page_size: 15 }; 
+  }
 };
 
 // Pass the ID to your get_tender_by_id Python function
 export const getTenderById = async (id: string) => {
-  const res = await apiClient.get('warroom_app.api.get_tender_by_id', { params: { id } });
-  return res.data.message;
+  try {
+    const res = await apiClient.get('warroom_app.api.get_tender_by_id', { params: { id } });
+    return res.data.message;
+  } catch (error) {
+    console.error("Frappe server might be rebooting:", error);
+    return null;
+  }
 };
 
 export const tendersApi = {

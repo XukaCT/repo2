@@ -15,15 +15,14 @@ website_route_rules = [
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "warroom_app",
-# 		"logo": "/assets/warroom_app/logo.png",
-# 		"title": "Warroom",
-# 		"route": "/warroom_app",
-# 		"has_permission": "warroom_app.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+ 	{
+ 		"name": "warroom_app",
+ 		"title": "Warroom",
+ 		"route": "/warroom",
+ 		"has_permission": "warroom_app.api.permission.has_app_permission"
+ 	}
+ ]
 
 # Includes in <head>
 # ------------------
