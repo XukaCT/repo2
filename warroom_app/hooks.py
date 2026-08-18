@@ -16,13 +16,13 @@ website_route_rules = [
 
 # Each item in the list will be shown as an app in the apps page
 add_to_apps_screen = [
- 	{
- 		"name": "warroom",
- 		"title": "Warroom",
- 		"route": "/warroom",
- 		"has_permission": "warroom_app.api.permission.has_app_permission"
- 	}
- ]
+    {
+        "name": "warroom_app",
+        "logo": "/assets/warroom_app/frontend/favicon.svg",
+        "title": "War Room Analytics",
+        "route": "/warroom",
+    }
+]
 
 # Includes in <head>
 # ------------------

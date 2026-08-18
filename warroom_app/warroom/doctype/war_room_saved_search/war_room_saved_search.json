@@ -29,7 +29,7 @@
   },
   {
    "fieldname": "sector",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "label": "Sector",
    "options": "Cleaning\nConstruction\nFacility Mgmt\nIT Services\nHealthcare\nTransportation\nOther\nAll Sectors",
    "sort_options": 1
@@ -72,7 +72,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-13 19:36:11.008411",
+ "modified": "2026-08-17 00:09:14.853840",
  "modified_by": "Administrator",
  "module": "Warroom",
  "name": "War Room Saved Search",
