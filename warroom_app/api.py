@@ -164,5 +164,20 @@ def create_saved_search(name, sector=None, state=None, min_value=0, max_value=0,
         "match_count": 0,
         "last_matched": None
     })
+
+    sector_map = {
+    "cleaning": "Cleaning",
+    "construction": "Construction",
+    "facility_management": "Facility Mgmt",
+    "it_services": "IT Services",
+    "healthcare": "Healthcare",
+    "transportation": "Transportation",
+    "other": "Other",
+    "all_sectors": "All Sectors"
+    }
+
+    if doc.sector in sector_map:
+        doc.sector = sector_map[doc.sector]
+
     doc.insert()
     return doc.as_dict()
