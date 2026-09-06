@@ -181,3 +181,45 @@ def create_saved_search(name, sector=None, state=None, min_value=0, max_value=0,
 
     doc.insert()
     return doc.as_dict()
+# ==========================================
+# 4. BID TRACKER INTEGRATION (THE BRIDGE)
+# ==========================================
+
+@frappe.whitelist(allow_guest=False)
+def pursue_tender(tender_id):
+    """
+    Takes a War Room Tender and converts it into an active Bid Record in the Bid Tracker app.
+    """
+    # 1. Verify the tender exists
+    if not frappe.db.exists("War Room Tender", tender_id):
+        frappe.throw("Tender not found", frappe.DoesNotExistError)
+        
+    # 2. Fetch the raw data from the War Room
+    tender = frappe.get_doc("War Room Tender", tender_id)
+    
+    # 3. Check if a bid already exists for this tender to prevent duplicates
+    existing_bid = frappe.db.exists("Bid Record", {"war_room_reference": tender.name})
+    if existing_bid:
+        return {"status": "error", "message": "A Bid Record already exists for this tender.", "bid_id": existing_bid}
+
+    # 4. Map the War Room data to the Bid Tracker schema and create the record
+    new_bid = frappe.get_doc({
+        "doctype": "Bid Record",
+        "bid_name": tender.title,
+        "client_name": tender.agency,  # Mapping agency to client
+        "sector": tender.sector,
+        "estimated_value": tender.contract_value,
+        "submission_deadline": tender.close_date,
+        "war_room_reference": tender.name,
+        "bid_status": "Draft" # Default starting workflow state
+    })
+    
+    # 5. Insert it into the database
+    new_bid.insert(ignore_permissions=True)
+    
+    # 6. Mark the original War Room tender as 'Pursued' so it doesn't show up in general searches anymore
+    frappe.db.set_value("War Room Tender", tender.name, "status", "pursued")
+    
+    frappe.db.commit()
+
+    return {"status": "success", "new_bid_id": new_bid.name}
