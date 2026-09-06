@@ -9,7 +9,7 @@ import {
   AlertCircle, ChevronDown, ChevronUp, Loader2,
   Globe, MapPin, Lock, Eye, EyeOff, ShieldAlert,
 } from 'lucide-react';
-import client from '../../api/client';
+import {apiClient} from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import { formatNumber } from '../../utils/formatters';
 import styles from './DataSourcesPage.module.css';
@@ -274,7 +274,7 @@ export default function DataSourcesPage() {
   const { data: sources = [] } = useQuery<SourceOption[]>({
     queryKey: ['ingestion-sources'],
     queryFn:  async () => {
-      const data = (await client.get('/ingestion/sources')).data;
+      const data = (await apiClient.get('/ingestion/sources')).data;
       return Array.isArray(data) ? data : [];
     },
     staleTime: Infinity,
@@ -283,7 +283,7 @@ export default function DataSourcesPage() {
   const { data: jobs = [], isLoading: jobsLoading, isFetching: jobsFetching, refetch } = useQuery<IngestionJob[]>({
     queryKey: ['ingestion-jobs'],
     queryFn:  async () => {
-      const data = (await client.get('/ingestion/jobs')).data;
+      const data = (await apiClient.get('/ingestion/jobs')).data;
       return Array.isArray(data) ? data : [];
     },
     refetchInterval: 10000,
@@ -295,7 +295,7 @@ export default function DataSourcesPage() {
       formData.append('file',        file);
       formData.append('source_key',  sourceKey);
       formData.append('custom_name', customName);
-      return (await client.post('/ingestion/upload', formData, {
+      return (await apiClient.post('/ingestion/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })).data as IngestionJob;
     },

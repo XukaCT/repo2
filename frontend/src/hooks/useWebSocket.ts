@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { initializeWebSocket, disconnectWebSocket } from '../api/websocket'; // Import your connection manager!
+import { initializeWebSocket } from '../api/websocket'; // Import your connection manager!
 
 export type WsStatus = 'connecting' | 'connected' | 'disconnected';
 

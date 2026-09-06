@@ -1,4 +1,4 @@
-import apiClient from '../api/client';
+import {apiClient} from '../api/client';
 
 export function useAuth() {
   // Frappe manages the session via HTTP-only cookies, so we just provide a placeholder user object here 

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../api/client';
+import {apiClient} from '../api/client';
 
 export interface AlertItem { id: string; title: string; description: string | null; type: string; priority: string; read: boolean | number; created_at: string; }
 export interface SavedSearchItem { id: string; name: string; sector: string | null; state: string | null; min_value: number; max_value: number; notifications: boolean | number; match_count: number; last_matched: string | null; created_at: string; }
