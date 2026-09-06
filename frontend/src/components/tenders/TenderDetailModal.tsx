@@ -1,14 +1,15 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   X, Building2, MapPin, DollarSign, Calendar,
-  Tag, ExternalLink, Globe, Hash,
+  Tag, ExternalLink, Globe, Hash, Briefcase // Added Briefcase icon for the bid button
 } from 'lucide-react';
 import type { Tender } from '../../types/tender.types';
 import { formatCurrencyFull, formatDate } from '../../utils/formatters';
 import { normalizeTenderStatus, sectorLabel, sectorColor } from '../../utils/tender.utils';
 import styles from './TenderDetailModal.module.css';
+import { tendersApi } from '../../api/endpoints/tenders.api'; // Updated Import!
 
 interface Props {
   tender: Tender | null;
@@ -38,6 +39,8 @@ function Row({
 }
 
 export default function TenderDetailModal({ tender, onClose }: Props) {
+  const [isSubmitting, setIsSubmitting] = useState(false); // Added loading state
+
   useEffect(() => {
     if (!tender) return;
 
@@ -61,6 +64,28 @@ export default function TenderDetailModal({ tender, onClose }: Props) {
 
   const hasContractValue = tender.contract_value != null;
   const status = normalizeTenderStatus(tender.status);
+
+  const handlePursueBid = async () => {
+    if (confirm("Are you sure you want to convert this to an active Bid?")) {
+      setIsSubmitting(true);
+      try {
+        // Using tendersApi based on our previous file
+        const result = await tendersApi.pushToBidTracker(tender.id); 
+        
+        if (result.status === 'success') {
+           alert(`Bid Created successfully! ID: ${result.new_bid_id}`);
+           onClose(); // Automatically close the modal on success
+        } else {
+           alert(result.message || "Failed to create bid.");
+        }
+      } catch (err) {
+        alert("Failed to connect to the server.");
+        console.error(err);
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
 
   return createPortal(
     <AnimatePresence>
@@ -139,17 +164,31 @@ export default function TenderDetailModal({ tender, onClose }: Props) {
 
           <div className={styles.footerActions}>
             <button className={styles.cancelBtn} onClick={onClose}>Close</button>
-            {tender.source_url && (
-              <a
-                href={tender.source_url}
-                target="_blank"
-                rel="noreferrer"
-                className={styles.primaryBtn}
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {/* THE NEW TRIGGER BUTTON */}
+              <button 
+                className={styles.primaryBtn} 
+                onClick={handlePursueBid}
+                disabled={isSubmitting}
+                style={{ backgroundColor: '#16a34a', borderColor: '#16a34a' }} // Green to signify 'Go/Pursue'
               >
-                <ExternalLink size={14} />
-                View on AusTender
-              </a>
-            )}
+                <Briefcase size={14} style={{ marginRight: '6px' }} />
+                {isSubmitting ? 'Creating...' : 'Create Bid Record'}
+              </button>
+
+              {tender.source_url && (
+                <a
+                  href={tender.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={styles.primaryBtn}
+                >
+                  <ExternalLink size={14} style={{ marginRight: '6px' }} />
+                  View on AusTender
+                </a>
+              )}
+            </div>
           </div>
         </motion.div>
       </motion.div>

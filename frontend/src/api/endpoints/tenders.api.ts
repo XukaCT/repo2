@@ -1,4 +1,4 @@
-import apiClient from '../client';
+import {apiClient} from '../client';
 import type {
   TenderListResponse,
   TenderFilters,
@@ -61,5 +61,13 @@ export const tendersApi = {
   // Call Frappe function: get_source_stats
   bySource: () =>
     apiClient.get<{ message: SourceStatsBySource }>('warroom_app.api.get_source_stats')
+      .then(r => r.data.message),
+
+  // ==========================================
+  // THE BRIDGE TO BID TRACKER
+  // ==========================================
+  pushToBidTracker: (id: string) =>
+    // Notice this is a POST request, sending the ID in the body
+    apiClient.post<{ message: any }>('warroom_app.api.pursue_tender', { tender_id: id })
       .then(r => r.data.message),
 };
