@@ -1,9 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-
-const WS_URL = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL.replace('http', 'ws')
-  : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
+import { initializeWebSocket, disconnectWebSocket } from '../api/websocket'; // Import your connection manager!
 
 export type WsStatus = 'connecting' | 'connected' | 'disconnected';
 
@@ -13,97 +10,65 @@ export interface WsMessage {
   new_alerts?:    number;
   total_ingested?: number;
   message?:       string;
+  bid_id?:        string;
+  new_status?:    string; 
 }
 
 export function useWebSocket() {
-  const token                   = "cookie-auth";
-  const qc                      = useQueryClient();
-  const wsRef                   = useRef<WebSocket | null>(null);
-  const reconnectRef            = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pingRef                 = useRef<ReturnType<typeof setInterval> | null>(null);
-  const connectRef              = useRef<() => void>(() => {});
-  const mountedRef              = useRef(true);
+  const qc = useQueryClient();
 
-  const [status,     setStatus]     = useState<WsStatus>('disconnected');
+  const [status, setStatus] = useState<WsStatus>('disconnected');
   const [lastMessage, setLastMessage] = useState<WsMessage | null>(null);
   const [newTenders, setNewTenders] = useState(0);
   const [newAlerts,  setNewAlerts]  = useState(0);
 
-  const connect = useCallback(() => {
-    if (!token || !mountedRef.current) return;
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-    const ws = new WebSocket(`${WS_URL}/ws/live?token=${token}`);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      if (!mountedRef.current) return;
-      setStatus('connected');
-      // Start ping every 25s to keep connection alive
-      const ping = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send('ping');
-        } else {
-          clearInterval(ping);
-        }
-      }, 25_000);
-      pingRef.current = ping;
-    };
-
-    ws.onmessage = (event) => {
-      if (!mountedRef.current) return;
-      try {
-        const msg: WsMessage = JSON.parse(event.data);
-        setLastMessage(msg);
-
-        if (msg.type === 'ingestion_complete') {
-          // Update counters
-          if (msg.new_tenders  && msg.new_tenders  > 0) setNewTenders(msg.new_tenders);
-          if (msg.new_alerts   && msg.new_alerts   > 0) setNewAlerts(msg.new_alerts);
-
-          // Invalidate React Query caches so pages refresh automatically
-          qc.invalidateQueries({ queryKey: ['alerts'] });
-          qc.invalidateQueries({ queryKey: ['tenders'] });
-          qc.invalidateQueries({ queryKey: ['overview'] });
-          qc.invalidateQueries({ queryKey: ['analytics'] });
-        }
-      } catch {
-        // ignore malformed messages
-      }
-    };
-
-    ws.onclose = () => {
-      if (!mountedRef.current) return;
-      setStatus('disconnected');
-      if (pingRef.current) clearInterval(pingRef.current);
-      // Auto reconnect after 3 seconds
-      reconnectRef.current = setTimeout(() => {
-        if (mountedRef.current) connectRef.current();
-      }, 3_000);
-    };
-
-    ws.onerror = () => {
-      ws.close();
-    };
-  }, [token, qc]);
-
   useEffect(() => {
-    connectRef.current = connect;
-  }, [connect]);
+    // 1. Get the single socket instance from your websocket.ts file
+    const socket = initializeWebSocket();
+    setStatus('connecting');
 
-  useEffect(() => {
-    mountedRef.current = true;
-    connect();
+    // 2. Track connection status
+    socket.on('connect', () => setStatus('connected'));
+    socket.on('disconnect', () => setStatus('disconnected'));
 
+    // ==========================================
+    // LISTENER 1: Ingestion Updates
+    // ==========================================
+    socket.on('ingestion_complete', (msg: WsMessage) => {
+      setLastMessage(msg);
+
+      if (msg.new_tenders && msg.new_tenders > 0) setNewTenders(prev => prev + msg.new_tenders!);
+      if (msg.new_alerts  && msg.new_alerts  > 0) setNewAlerts(prev => prev + msg.new_alerts!);
+
+      // Refresh the UI caches
+      qc.invalidateQueries({ queryKey: ['alerts'] });
+      qc.invalidateQueries({ queryKey: ['tenders'] });
+      qc.invalidateQueries({ queryKey: ['overview'] });
+      qc.invalidateQueries({ queryKey: ['analytics'] });
+    });
+
+    // ==========================================
+    // LISTENER 2: Bid Tracker Updates
+    // ==========================================
+    socket.on('bid_status_changed', (payload) => {
+      setLastMessage({ type: 'bid_status_changed', ...payload });
+
+      // Refresh the dashboard charts
+      qc.invalidateQueries({ queryKey: ['overview'] });
+      qc.invalidateQueries({ queryKey: ['analytics'] });
+    });
+
+    // 3. Cleanup when the app is closed
     return () => {
-      mountedRef.current = false;
-      if (reconnectRef.current) clearTimeout(reconnectRef.current);
-      if (wsRef.current) {
-        if (pingRef.current) clearInterval(pingRef.current);
-        wsRef.current.close();
-      }
+      // Notice we are NOT calling disconnectWebSocket() here unless we want to kill 
+      // the connection for the whole app when this specific hook unmounts.
+      // Instead, we just remove the listeners so we don't get memory leaks.
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('ingestion_complete');
+      socket.off('bid_status_changed');
     };
-  }, [connect, token]);
+  }, [qc]); 
 
   const clearCounters = useCallback(() => {
     setNewTenders(0);

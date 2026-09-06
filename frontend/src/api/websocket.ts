@@ -1,50 +1,46 @@
-const WS_URL = import.meta.env.VITE_WS_URL || `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/live`;
+import { io, Socket } from 'socket.io-client';
 
-type WSEvent = { type: string; payload: unknown };
-type Listener = (event: WSEvent) => void;
+// Point this to your Frappe URL. 
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-class WebSocketManager {
-  private ws: WebSocket | null = null;
-  private listeners: Set<Listener> = new Set();
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private shouldReconnect = true;
-  private reconnectDelay = 3000;
+let socket: Socket | null = null;
 
-  connect() {
-    if (this.ws?.readyState === WebSocket.OPEN) return;
-    try {
-      this.ws = new WebSocket(WS_URL);
-      this.ws.onopen    = () => { console.log('[WS] connected'); this.reconnectDelay = 3000; };
-      this.ws.onmessage = (e) => { try { const data = JSON.parse(e.data); this.listeners.forEach(l => l(data)); } catch { /* ignore malformed JSON frames */ } };
-      this.ws.onclose   = () => { if (this.shouldReconnect) this.scheduleReconnect(); };
-      this.ws.onerror   = () => { this.ws?.close(); };
-    } catch {
-      this.scheduleReconnect();
-    }
+export const initializeWebSocket = () => {
+  if (socket) return socket;
+
+  // Frappe natively supports Socket.io connections
+  socket = io(SOCKET_URL, {
+    withCredentials: true, // Passes the Frappe session cookie automatically
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 2000,
+  });
+
+  socket.on('connect', () => {
+    console.log('Successfully connected to Frappe Realtime (Socket.io)');
+  });
+
+  socket.on('connect_error', (err) => {
+    console.error('Socket connection error:', err.message);
+  });
+
+  // ==========================================
+  // LISTENER: Catch updates from Bid Tracker
+  // ==========================================
+  socket.on('bid_status_changed', (payload) => {
+    console.log('URGENT: Bid Status Updated in ERPNext!', payload);
+    
+    // Create a custom browser event so your React components can listen for it
+    const event = new CustomEvent('onBidUpdate', { detail: payload });
+    window.dispatchEvent(event);
+  });
+
+  return socket;
+};
+
+export const disconnectWebSocket = () => {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
   }
-
-  private scheduleReconnect() {
-    if (this.reconnectTimer) return;
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      this.reconnectDelay = Math.min(this.reconnectDelay * 1.5, 30000);
-      this.connect();
-    }, this.reconnectDelay);
-  }
-
-  disconnect() {
-    this.shouldReconnect = false;
-    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
-    this.ws?.close();
-    this.ws = null;
-  }
-
-  subscribe(listener: Listener) {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-
-  get isConnected() { return this.ws?.readyState === WebSocket.OPEN; }
-}
-
-export const wsManager = new WebSocketManager();
+};
