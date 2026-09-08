@@ -705,7 +705,7 @@ export default function TendersPage() {
           <div className={styles.totalValueStat}>
             <p className={styles.tvStatLabel}>Data Sources</p>
             <p className={styles.tvStatValue}>
-              {stats ? Object.keys(stats.sources).length : '…'}
+              {stats ? Object.keys(stats.sources|| {}).length : '…'}
             </p>
           </div>
         </div>
