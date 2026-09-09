@@ -56,6 +56,7 @@ export function useWebSocket() {
       // Refresh the dashboard charts
       qc.invalidateQueries({ queryKey: ['overview'] });
       qc.invalidateQueries({ queryKey: ['analytics'] });
+      qc.invalidateQueries({ queryKey: ['tenders'] });
     });
 
     // 3. Cleanup when the app is closed

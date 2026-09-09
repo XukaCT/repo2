@@ -94,7 +94,7 @@ type Tab = 'active' | 'upcoming' | 'closed';
 type PageItem = number | 'dots-left' | 'dots-right';
 
 const DEFAULT_SORT_FIELD: TenderSortField = 'created_at';
-const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
+const DEFAULT_SORT_DIRECTION: SortDirection = 'asc';
 
 const STATUS_CARDS: {
   id: Tab;

@@ -3,13 +3,13 @@ import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import {
   X, Building2, MapPin, DollarSign, Calendar,
-  Tag, ExternalLink, Globe, Hash, Briefcase // Added Briefcase icon for the bid button
+  Tag, ExternalLink, Globe, Hash, Briefcase
 } from 'lucide-react';
 import type { Tender } from '../../types/tender.types';
 import { formatCurrencyFull, formatDate } from '../../utils/formatters';
 import { normalizeTenderStatus, sectorLabel, sectorColor } from '../../utils/tender.utils';
 import styles from './TenderDetailModal.module.css';
-import { tendersApi } from '../../api/endpoints/tenders.api'; // Updated Import!
+import { tendersApi } from '../../api/endpoints/tenders.api';
 
 interface Props {
   tender: Tender | null;
@@ -39,20 +39,19 @@ function Row({
 }
 
 export default function TenderDetailModal({ tender, onClose }: Props) {
-  const [isSubmitting, setIsSubmitting] = useState(false); // Added loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!tender) return;
-
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-
+    
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose();
       }
     };
-
+    
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.body.style.overflow = originalOverflow;
@@ -64,17 +63,22 @@ export default function TenderDetailModal({ tender, onClose }: Props) {
 
   const hasContractValue = tender.contract_value != null;
   const status = normalizeTenderStatus(tender.status);
+  
+  // FIX 1: Force lowercase for strict CSS class matching
+  const cssClass = status ? status.toLowerCase() : 'closed';
+  
+  // FIX 2: Only allow bidding on active/open tenders
+  const canBid = cssClass === 'active' || cssClass === 'open';
 
   const handlePursueBid = async () => {
     if (confirm("Are you sure you want to convert this to an active Bid?")) {
       setIsSubmitting(true);
       try {
-        // Using tendersApi based on our previous file
-        const result = await tendersApi.pushToBidTracker(tender.id); 
+        const result = await tendersApi.pushToBidTracker(tender.id);
         
         if (result.status === 'success') {
            alert(`Bid Created successfully! ID: ${result.new_bid_id}`);
-           onClose(); // Automatically close the modal on success
+           onClose();
         } else {
            alert(result.message || "Failed to create bid.");
         }
@@ -112,7 +116,7 @@ export default function TenderDetailModal({ tender, onClose }: Props) {
               />
               <div>
                 <p className={styles.headerSector}>{sectorLabel(tender.sector)}</p>
-                <p className={styles.headerSource}>{tender.source_name} · {tender.source_id}</p>
+                <p className={styles.headerSource}>{tender.source_name} | {tender.source_id}</p>
               </div>
             </div>
             <button className={styles.closeBtn} onClick={onClose}>
@@ -122,7 +126,8 @@ export default function TenderDetailModal({ tender, onClose }: Props) {
 
           <div className={styles.titleSection}>
             <h2 className={styles.title}>{tender.title}</h2>
-            <span className={styles[`status_${status}`]}>{status}</span>
+            {/* Applies the forced lowercase class */}
+            <span className={styles[`status_${cssClass}`]}>{status}</span>
           </div>
 
           {tender.description && (
@@ -139,11 +144,12 @@ export default function TenderDetailModal({ tender, onClose }: Props) {
               <Row
                 icon={DollarSign}
                 label="Contract Value"
-                value={hasContractValue ? formatCurrencyFull(tender.contract_value) : '—'}
+                value={hasContractValue ? formatCurrencyFull(tender.contract_value) : 'Not Disclosed'}
               />
               <Row icon={MapPin} label="State" value={tender.state ?? 'Federal'} />
               <Row icon={Tag} label="Sector" value={sectorLabel(tender.sector)} />
             </div>
+
             <div className={styles.detailsCol}>
               <p className={styles.colLabel}>Dates &amp; Source</p>
               <Row icon={Calendar} label="Close Date" value={formatDate(tender.close_date)} />
@@ -166,16 +172,18 @@ export default function TenderDetailModal({ tender, onClose }: Props) {
             <button className={styles.cancelBtn} onClick={onClose}>Close</button>
             
             <div style={{ display: 'flex', gap: '12px' }}>
-              {/* THE NEW TRIGGER BUTTON */}
-              <button 
-                className={styles.primaryBtn} 
-                onClick={handlePursueBid}
-                disabled={isSubmitting}
-                style={{ backgroundColor: '#16a34a', borderColor: '#16a34a' }} // Green to signify 'Go/Pursue'
-              >
-                <Briefcase size={14} style={{ marginRight: '6px' }} />
-                {isSubmitting ? 'Creating...' : 'Create Bid Record'}
-              </button>
+              {/* Conditionally renders only if the tender is open/active */}
+              {canBid && (
+                <button 
+                  className={styles.primaryBtn} 
+                  onClick={handlePursueBid}
+                  disabled={isSubmitting}
+                  style={{ backgroundColor: '#16a34a', borderColor: '#16a34a' }}
+                >
+                  <Briefcase size={14} style={{ marginRight: '6px' }} />
+                  {isSubmitting ? 'Creating...' : 'Create Bid Record'}
+                </button>
+              )}
 
               {tender.source_url && (
                 <a
