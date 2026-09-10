@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import {apiClient} from '../api/client';
+import { apiClient } from '../api/client';
 
 // ── Types ─────────────────────────────────────────────────────
 export interface MonthlyVolume {
@@ -59,108 +59,12 @@ export interface ValueDistribution {
   color: string;
 }
 
-// ── Hooks ─────────────────────────────────────────────────────
-const STALE = 5 * 60 * 1000;
-
-export function useAnalytics() {
-  // Adding the generic type here fixes the RecentActivityFeed errors!
-  return useQuery<{ total_bids: number, total_value: number, by_sector: any, by_state: any, recent_tenders: any[] }>({
-    queryKey: ['analytics'],
-    queryFn: async () => {
-      const res = await apiClient.get('warroom_app.api.get_analytics');
-      return res.data.message;
-    },
-    staleTime: 60 * 1000,
-  });
-}
-
-export function useAnalyticsSummary() {
-  return useQuery<AnalyticsSummary>({
-    queryKey: ['analytics', 'summary'],
-    queryFn:  async () => (await apiClient.get('/analytics/summary')).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
-export function useMonthlyVolume(dateField: 'close_date' | 'published_date' = 'close_date') {
-  return useQuery<MonthlyVolume[]>({
-    queryKey: ['analytics', 'monthly-volume', dateField],
-    queryFn:  async () => (await apiClient.get(`/analytics/monthly-volume?date_field=${dateField}`)).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
-export function useValueOverTime(dateField: 'close_date' | 'published_date' = 'close_date') {
-  return useQuery<ValueOverTime[]>({
-    queryKey: ['analytics', 'value-over-time', dateField],
-    queryFn:  async () => (await apiClient.get(`/analytics/value-over-time?date_field=${dateField}`)).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
-export function useTopDepartments(limit = 10) {
-  return useQuery<TopDepartment[]>({
-    queryKey: ['analytics', 'top-departments', limit],
-    queryFn:  async () => (await apiClient.get(`/analytics/top-departments?limit=${limit}`)).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
-export function useSourceBreakdown() {
-  return useQuery<SourceBreakdown[]>({
-    queryKey: ['analytics', 'source-breakdown'],
-    queryFn:  async () => (await apiClient.get('/analytics/source-breakdown')).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
-export function useStatusBreakdown() {
-  return useQuery<StatusBreakdown[]>({
-    queryKey: ['analytics', 'status-breakdown'],
-    queryFn:  async () => (await apiClient.get('/analytics/status-breakdown')).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
-export function useClosingSoon() {
-  return useQuery<ClosingSoon>({
-    queryKey: ['analytics', 'closing-soon'],
-    queryFn:  async () => (await apiClient.get('/analytics/closing-soon')).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
-export function useValueDistribution() {
-  return useQuery<ValueDistribution[]>({
-    queryKey: ['analytics', 'value-distribution'],
-    queryFn:  async () => (await apiClient.get('/analytics/value-distribution')).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
 export interface SourceFreshness {
   source:       string;
   label:        string;
   count:        number;
   last_updated: string | null;
   method:       'scheduler' | 'upload';
-}
-
-export function useSourceFreshness() {
-  return useQuery<SourceFreshness[]>({
-    queryKey: ['analytics', 'source-freshness'],
-    queryFn:  async () => (await apiClient.get('/analytics/source-freshness')).data,
-    staleTime: STALE,
-    retry: 1,
-  });
 }
 
 export interface ClosingByMonth {
@@ -171,36 +75,6 @@ export interface ClosingByMonth {
 export interface PipelineData {
   data:    Record<string, string | number>[];
   sources: string[];
-}
-
-export function useClosingByMonth(dateFrom?: string, dateTo?: string) {
-  const params = new URLSearchParams();
-  if (dateFrom) params.set('date_from', dateFrom);
-  if (dateTo)   params.set('date_to', dateTo);
-  const qs = params.toString();
-  return useQuery<ClosingByMonth[]>({
-    queryKey: ['analytics', 'closing-by-month', dateFrom, dateTo],
-    queryFn:  async () => (await apiClient.get(`/analytics/closing-by-month${qs ? '?' + qs : ''}`)).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
-export function usePipelineByMonth(
-  source:   string = 'all',
-  status:   string = 'all',
-  dateFrom?: string,
-  dateTo?:   string,
-) {
-  const params = new URLSearchParams({ source, status });
-  if (dateFrom) params.set('date_from', dateFrom);
-  if (dateTo)   params.set('date_to', dateTo);
-  return useQuery<PipelineData>({
-    queryKey: ['analytics', 'pipeline-by-month', source, status, dateFrom, dateTo],
-    queryFn:  async () => (await apiClient.get(`/analytics/pipeline-by-month?${params.toString()}`)).data,
-    staleTime: STALE,
-    retry: 1,
-  });
 }
 
 export interface WinWindowData {
@@ -231,42 +105,6 @@ export interface ScatterPoint {
   source_name:    string;
 }
 
-export function useWinWindow() {
-  return useQuery<WinWindowData>({
-    queryKey: ['analytics', 'win-window'],
-    queryFn:  async () => (await apiClient.get('/analytics/win-window')).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
-export function useSectorStateHeatmap() {
-  return useQuery<HeatmapData>({
-    queryKey: ['analytics', 'sector-state-heatmap'],
-    queryFn:  async () => (await apiClient.get('/analytics/sector-state-heatmap')).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
-export function useAgencyFrequency(limit = 15) {
-  return useQuery<AgencyFrequency[]>({
-    queryKey: ['analytics', 'agency-frequency', limit],
-    queryFn:  async () => (await apiClient.get(`/analytics/agency-frequency?limit=${limit}`)).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
-export function useValueScatter() {
-  return useQuery<ScatterPoint[]>({
-    queryKey: ['analytics', 'value-scatter'],
-    queryFn:  async () => (await apiClient.get('/analytics/value-scatter')).data,
-    staleTime: STALE,
-    retry: 1,
-  });
-}
-
 export interface TreemapItem {
   sector: string;
   state:  string;
@@ -281,10 +119,172 @@ export interface SectorStatusItem {
   total:    number;
 }
 
+// ── Hooks ─────────────────────────────────────────────────────
+const STALE = 5 * 60 * 1000;
+
+export function useAnalytics() {
+  return useQuery<{ total_bids: number, total_value: number, by_sector: any, by_state: any, recent_tenders: any[] }>({
+    queryKey: ['analytics'],
+    queryFn: async () => {
+      const res = await apiClient.get('/api/method/warroom_app.api.get_analytics');
+      return res.data.message;
+    },
+    staleTime: STALE,
+  });
+}
+
+export function useAnalyticsSummary() {
+  return useQuery<AnalyticsSummary>({
+    queryKey: ['analytics', 'summary'],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_analytics_summary')).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useMonthlyVolume(dateField: 'close_date' | 'published_date' = 'close_date') {
+  return useQuery<MonthlyVolume[]>({
+    queryKey: ['analytics', 'monthly-volume', dateField],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_monthly_volume', { params: { date_field: dateField } })).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useValueOverTime(dateField: 'close_date' | 'published_date' = 'close_date') {
+  return useQuery<ValueOverTime[]>({
+    queryKey: ['analytics', 'value-over-time', dateField],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_value_over_time', { params: { date_field: dateField } })).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useTopDepartments(limit = 10) {
+  return useQuery<TopDepartment[]>({
+    queryKey: ['analytics', 'top-departments', limit],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_top_departments', { params: { limit } })).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useSourceBreakdown() {
+  return useQuery<SourceBreakdown[]>({
+    queryKey: ['analytics', 'source-breakdown'],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_source_breakdown')).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useStatusBreakdown() {
+  return useQuery<StatusBreakdown[]>({
+    queryKey: ['analytics', 'status-breakdown'],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_status_breakdown')).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useClosingSoon() {
+  return useQuery<ClosingSoon>({
+    queryKey: ['analytics', 'closing-soon'],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_closing_soon')).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useValueDistribution() {
+  return useQuery<ValueDistribution[]>({
+    queryKey: ['analytics', 'value-distribution'],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_value_distribution')).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useSourceFreshness() {
+  return useQuery<SourceFreshness[]>({
+    queryKey: ['analytics', 'source-freshness'],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_source_freshness')).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useClosingByMonth(dateFrom?: string, dateTo?: string) {
+  const params: Record<string, string> = {};
+  if (dateFrom) params.date_from = dateFrom;
+  if (dateTo)   params.date_to = dateTo;
+  
+  return useQuery<ClosingByMonth[]>({
+    queryKey: ['analytics', 'closing-by-month', dateFrom, dateTo],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_closing_by_month', { params })).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function usePipelineByMonth(
+  source:   string = 'all',
+  status:   string = 'all',
+  dateFrom?: string,
+  dateTo?:   string,
+) {
+  const params: Record<string, string> = { source, status };
+  if (dateFrom) params.date_from = dateFrom;
+  if (dateTo)   params.date_to = dateTo;
+  
+  return useQuery<PipelineData>({
+    queryKey: ['analytics', 'pipeline-by-month', source, status, dateFrom, dateTo],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_pipeline_by_month', { params })).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useWinWindow() {
+  return useQuery<WinWindowData>({
+    queryKey: ['analytics', 'win-window'],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_win_window')).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useSectorStateHeatmap() {
+  return useQuery<HeatmapData>({
+    queryKey: ['analytics', 'sector-state-heatmap'],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_sector_state_heatmap')).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useAgencyFrequency(limit = 15) {
+  return useQuery<AgencyFrequency[]>({
+    queryKey: ['analytics', 'agency-frequency', limit],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_agency_frequency', { params: { limit } })).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
+export function useValueScatter() {
+  return useQuery<ScatterPoint[]>({
+    queryKey: ['analytics', 'value-scatter'],
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_value_scatter')).data.message,
+    staleTime: STALE,
+    retry: 1,
+  });
+}
+
 export function useSectorTreemap() {
   return useQuery<TreemapItem[]>({
     queryKey: ['analytics', 'sector-treemap'],
-    queryFn:  async () => (await apiClient.get('/analytics/sector-treemap')).data,
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_sector_treemap')).data.message,
     staleTime: STALE,
     retry: 1,
   });
@@ -293,7 +293,7 @@ export function useSectorTreemap() {
 export function useSectorStatusBreakdown() {
   return useQuery<SectorStatusItem[]>({
     queryKey: ['analytics', 'sector-status-breakdown'],
-    queryFn:  async () => (await apiClient.get('/analytics/sector-status-breakdown')).data,
+    queryFn:  async () => (await apiClient.get('/api/method/warroom_app.api.get_sector_status_breakdown')).data.message,
     staleTime: STALE,
     retry: 1,
   });

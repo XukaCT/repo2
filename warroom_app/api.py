@@ -297,3 +297,314 @@ def pursue_tender(tender_id):
     frappe.db.commit()
 
     return {"status": "success", "new_bid_id": new_bid.name}
+
+# ==========================================
+# 5. ANALYTICS DASHBOARD API
+# ==========================================
+
+@frappe.whitelist(allow_guest=False)
+def get_top_departments(limit=10):
+    limit = cint(limit) or 10
+    return frappe.db.sql(f"""
+        SELECT agency, COUNT(name) as contract_count, SUM(contract_value) as total_value, AVG(contract_value) as avg_value
+        FROM `tabWar Room Tender`
+        WHERE agency IS NOT NULL AND agency != ''
+        GROUP BY agency
+        ORDER BY total_value DESC
+        LIMIT {limit}
+    """, as_dict=True)
+
+@frappe.whitelist(allow_guest=False)
+def get_status_breakdown():
+    # Fetch all statuses
+    data = frappe.db.sql("""
+        SELECT status, COUNT(name) as count
+        FROM `tabWar Room Tender`
+        GROUP BY status
+    """, as_dict=True)
+    
+    # Clean up the statuses into our 3 main buckets for the Pie Chart
+    buckets = {"open": 0, "upcoming": 0, "closed": 0}
+    for d in data:
+        s = str(d.status).lower()
+        if s in ['open', 'active']: buckets['open'] += d.count
+        elif s in ['upcoming', 'pursued']: buckets['upcoming'] += d.count
+        else: buckets['closed'] += d.count
+        
+    return [{"status": k, "count": v} for k, v in buckets.items() if v > 0]
+
+@frappe.whitelist(allow_guest=False)
+def get_closing_soon():
+    # Calculate 30-60-90 day buckets using pure SQL
+    next_30 = frappe.db.sql("""SELECT COUNT(name) FROM `tabWar Room Tender` WHERE close_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)""")[0][0]
+    next_60 = frappe.db.sql("""SELECT COUNT(name) FROM `tabWar Room Tender` WHERE close_date BETWEEN DATE_ADD(CURDATE(), INTERVAL 31 DAY) AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)""")[0][0]
+    next_90 = frappe.db.sql("""SELECT COUNT(name) FROM `tabWar Room Tender` WHERE close_date BETWEEN DATE_ADD(CURDATE(), INTERVAL 61 DAY) AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)""")[0][0]
+    
+    return {
+        "next_30": next_30,
+        "next_60": next_60,
+        "next_90": next_90,
+        "total_active": next_30 + next_60 + next_90,
+        "buckets": [
+            {"label": "0-30 Days", "count": next_30, "color": "#EF4444"},
+            {"label": "31-60 Days", "count": next_60, "color": "#F59E0B"},
+            {"label": "61-90 Days", "count": next_90, "color": "#10B981"}
+        ]
+    }
+
+@frappe.whitelist(allow_guest=False)
+def get_win_window():
+    # Group upcoming close dates by Month and Sector
+    data = frappe.db.sql("""
+        SELECT DATE_FORMAT(close_date, '%b %Y') as month, sector, COUNT(name) as count
+        FROM `tabWar Room Tender`
+        WHERE close_date >= CURDATE() AND close_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY)
+        AND sector IS NOT NULL AND sector != ''
+        GROUP BY month, sector
+        ORDER BY MIN(close_date) ASC
+    """, as_dict=True)
+    
+    # Format the data into Recharts Stacked Bar shape
+    months_dict = {}
+    sectors = set()
+    for d in data:
+        m = d.month
+        s = d.sector
+        if m not in months_dict:
+            months_dict[m] = {"month": m}
+        months_dict[m][s] = d.count
+        sectors.add(s)
+        
+    return {
+        "data": list(months_dict.values()),
+        "sectors": list(sectors)
+    }
+
+@frappe.whitelist(allow_guest=False)
+def get_sector_state_heatmap():
+    data = frappe.db.sql("""
+        SELECT sector, state, COUNT(name) as count
+        FROM `tabWar Room Tender`
+        WHERE sector IS NOT NULL AND sector != '' 
+        AND state IS NOT NULL AND state != ''
+        GROUP BY sector, state
+    """, as_dict=True)
+    
+    # Format the data into a 2D matrix
+    matrix = {}
+    sectors = set()
+    states = set()
+    
+    for d in data:
+        sec = d.sector
+        st = d.state
+        if sec not in matrix:
+            matrix[sec] = {}
+        matrix[sec][st] = d.count
+        sectors.add(sec)
+        states.add(st)
+        
+    return {
+        "matrix": matrix,
+        "sectors": list(sectors),
+        "states": list(states)
+    }
+
+@frappe.whitelist(allow_guest=False)
+def get_agency_frequency(limit=15):
+    limit = cint(limit) or 15
+    return frappe.db.sql(f"""
+        SELECT 
+            agency, 
+            COUNT(name) as count,
+            SUM(CASE WHEN status IN ('open', 'Open', 'active', 'Active') THEN 1 ELSE 0 END) as open_count,
+            SUM(CASE WHEN status IN ('upcoming', 'Upcoming', 'pursued', 'Pursued') THEN 1 ELSE 0 END) as upcoming_count
+        FROM `tabWar Room Tender`
+        WHERE agency IS NOT NULL AND agency != ''
+        GROUP BY agency
+        ORDER BY count DESC
+        LIMIT {limit}
+    """, as_dict=True)
+
+@frappe.whitelist(allow_guest=False)
+def get_value_scatter():
+    # Fetch raw data points for the scatter plot
+    return frappe.db.sql("""
+        SELECT title, agency, sector, state, contract_value, close_date, source_name
+        FROM `tabWar Room Tender`
+        WHERE contract_value > 0 AND close_date IS NOT NULL AND close_date >= CURDATE()
+        LIMIT 150
+    """, as_dict=True)
+
+@frappe.whitelist(allow_guest=False)
+def get_sector_treemap():
+    return frappe.db.sql("""
+        SELECT sector, state, COUNT(name) as count
+        FROM `tabWar Room Tender`
+        WHERE sector IS NOT NULL AND sector != '' AND state IS NOT NULL AND state != ''
+        GROUP BY sector, state
+    """, as_dict=True)
+
+@frappe.whitelist(allow_guest=False)
+def get_sector_status_breakdown():
+    # Calculate Completion Rings (Open vs Upcoming vs Closed) per Sector
+    return frappe.db.sql("""
+        SELECT 
+            sector,
+            SUM(CASE WHEN status IN ('open', 'Open', 'active', 'Active') THEN 1 ELSE 0 END) as open,
+            SUM(CASE WHEN status IN ('closed', 'Closed', 'won', 'Won', 'lost', 'Lost', 'awarded', 'Awarded') THEN 1 ELSE 0 END) as closed,
+            SUM(CASE WHEN status IN ('upcoming', 'Upcoming', 'pursued', 'Pursued') THEN 1 ELSE 0 END) as upcoming,
+            COUNT(name) as total
+        FROM `tabWar Room Tender`
+        WHERE sector IS NOT NULL AND sector != ''
+        GROUP BY sector
+        ORDER BY total DESC
+    """, as_dict=True)
+
+# ==========================================
+# 6. EXTENDED ANALYTICS & REPORTS
+# ==========================================
+
+@frappe.whitelist(allow_guest=False)
+def get_analytics():
+    # A generic high-level wrapper
+    total = frappe.db.count("War Room Tender")
+    val = frappe.db.sql("SELECT SUM(contract_value) as total_value FROM `tabWar Room Tender`")[0][0] or 0
+    return {
+        "total_bids": total,
+        "total_value": val,
+        "by_sector": get_sector_stats(),
+        "by_state": get_state_stats(),
+        "recent_tenders": []
+    }
+
+@frappe.whitelist(allow_guest=False)
+def get_analytics_summary():
+    total = frappe.db.count("War Room Tender")
+    val = frappe.db.sql("SELECT SUM(contract_value) as total_value, AVG(contract_value) as avg_value FROM `tabWar Room Tender`", as_dict=True)[0]
+    
+    top_sector = frappe.db.sql("SELECT sector FROM `tabWar Room Tender` WHERE sector IS NOT NULL AND sector != '' GROUP BY sector ORDER BY COUNT(name) DESC LIMIT 1")
+    top_state = frappe.db.sql("SELECT state FROM `tabWar Room Tender` WHERE state IS NOT NULL AND state != '' GROUP BY state ORDER BY COUNT(name) DESC LIMIT 1")
+    
+    return {
+        "total_contracts": total,
+        "total_value": val.total_value or 0,
+        "avg_value": val.avg_value or 0,
+        "top_sector": top_sector[0][0] if top_sector else None,
+        "top_state": top_state[0][0] if top_state else None
+    }
+
+@frappe.whitelist(allow_guest=False)
+def get_monthly_volume(**kwargs):
+    date_field = kwargs.get("date_field", "close_date")
+    # Prevent SQL injection by strictly allowing only these two columns
+    df = "published_date" if date_field == "published_date" else "close_date"
+    
+    return frappe.db.sql(f"""
+        SELECT DATE_FORMAT({df}, '%b %Y') as month, COUNT(name) as count
+        FROM `tabWar Room Tender`
+        WHERE {df} IS NOT NULL
+        GROUP BY DATE_FORMAT({df}, '%Y-%m'), month
+        ORDER BY MIN({df}) ASC
+    """, as_dict=True)
+
+@frappe.whitelist(allow_guest=False)
+def get_value_over_time(**kwargs):
+    date_field = kwargs.get("date_field", "close_date")
+    df = "published_date" if date_field == "published_date" else "close_date"
+    
+    return frappe.db.sql(f"""
+        SELECT DATE_FORMAT({df}, '%b %Y') as month, SUM(contract_value) as total_value, COUNT(name) as count
+        FROM `tabWar Room Tender`
+        WHERE {df} IS NOT NULL AND contract_value > 0
+        GROUP BY DATE_FORMAT({df}, '%Y-%m'), month
+        ORDER BY MIN({df}) ASC
+    """, as_dict=True)
+
+@frappe.whitelist(allow_guest=False)
+def get_source_breakdown():
+    return frappe.db.sql("""
+        SELECT source_name as source, COUNT(name) as count, SUM(contract_value) as total_value
+        FROM `tabWar Room Tender`
+        WHERE source_name IS NOT NULL
+        GROUP BY source_name
+        ORDER BY count DESC
+    """, as_dict=True)
+
+@frappe.whitelist(allow_guest=False)
+def get_value_distribution():
+    # Buckets contract values into standard financial ranges
+    return frappe.db.sql("""
+        SELECT 
+            CASE 
+                WHEN contract_value < 100000 THEN '< $100K'
+                WHEN contract_value < 500000 THEN '$100K - $500K'
+                WHEN contract_value < 1000000 THEN '$500K - $1M'
+                WHEN contract_value < 5000000 THEN '$1M - $5M'
+                ELSE '$5M+'
+            END as `range`,
+            COUNT(name) as count,
+            CASE 
+                WHEN contract_value < 100000 THEN '#6B7280'
+                WHEN contract_value < 500000 THEN '#3B82F6'
+                WHEN contract_value < 1000000 THEN '#10B981'
+                WHEN contract_value < 5000000 THEN '#F59E0B'
+                ELSE '#EF4444'
+            END as color
+        FROM `tabWar Room Tender`
+        WHERE contract_value > 0
+        GROUP BY `range`, color
+        ORDER BY MIN(contract_value) ASC
+    """, as_dict=True)
+
+@frappe.whitelist(allow_guest=False)
+def get_source_freshness():
+    # Identifies the last time a specific portal had a tender uploaded
+    return frappe.db.sql("""
+        SELECT 
+            source_name as source, 
+            source_name as label, 
+            COUNT(name) as count, 
+            MAX(creation) as last_updated, 
+            'upload' as method
+        FROM `tabWar Room Tender`
+        WHERE source_name IS NOT NULL
+        GROUP BY source_name
+    """, as_dict=True)
+
+@frappe.whitelist(allow_guest=False)
+def get_closing_by_month(**kwargs):
+    return frappe.db.sql("""
+        SELECT DATE_FORMAT(close_date, '%b %Y') as month, COUNT(name) as count
+        FROM `tabWar Room Tender`
+        WHERE close_date IS NOT NULL
+        GROUP BY DATE_FORMAT(close_date, '%Y-%m'), month
+        ORDER BY MIN(close_date) ASC
+    """, as_dict=True)
+
+@frappe.whitelist(allow_guest=False)
+def get_pipeline_by_month(**kwargs):
+    # Builds a stacked bar chart data structure for sources over time
+    data = frappe.db.sql("""
+        SELECT DATE_FORMAT(close_date, '%b %Y') as month, source_name, COUNT(name) as count
+        FROM `tabWar Room Tender`
+        WHERE close_date IS NOT NULL
+        GROUP BY DATE_FORMAT(close_date, '%Y-%m'), month, source_name
+        ORDER BY MIN(close_date) ASC
+    """, as_dict=True)
+    
+    months_dict = {}
+    sources = set()
+    
+    for d in data:
+        m = d.month
+        s = d.source_name or 'Unknown'
+        if m not in months_dict:
+            months_dict[m] = {"month": m}
+        months_dict[m][s] = d.count
+        sources.add(s)
+        
+    return {
+        "data": list(months_dict.values()),
+        "sources": list(sources)
+    }
