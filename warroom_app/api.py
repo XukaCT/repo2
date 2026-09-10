@@ -7,60 +7,78 @@ from frappe.utils import cint
 # ==========================================
 @frappe.whitelist(allow_guest=False)
 def get_tenders(page=1, page_size=15, search=None, sector=None, state=None, status=None, source_name=None, **kwargs):
-    filters = {}
-    
-    if sector: filters["sector"] = sector
-    if state: filters["state"] = state
-    if source_name: filters["source_name"] = source_name
-    
-    year = kwargs.get("year")
-    year_mode = kwargs.get("yearMode", "close")
-    if year:
-        date_field = "close_date" if year_mode == "close" else "published_date"
-        filters[date_field] = ["between", [f"{year}-01-01", f"{year}-12-31"]]
-    
-    requested_status = "open"
-    if status:
-        clean = str(status).lower()
-        if 'upcoming' in clean:
-            requested_status = "upcoming"
-            filters["status"] = ["in", ["upcoming", "Upcoming", "pursued", "Pursued"]]
-        elif 'closed' in clean:
-            requested_status = "closed"
-            filters["status"] = ["in", [
-                "closed", "Closed", 
-                "won", "Won", 
-                "lost", "Lost", 
-                "awarded", "Awarded", 
-                "withdrawn", "Withdrawn"
-            ]]
-        else:
-            requested_status = "open"
-            filters["status"] = ["in", ["open", "Open", "active", "Active"]]
-            
-    if search: filters["title"] = ["like", f"%{search}%"]
-
-    page = cint(page) if cint(page) > 0 else 1
-    page_size = cint(page_size) if cint(page_size) > 0 else 15
-    start = (page - 1) * page_size
-
-    sort_f = kwargs.get("sort_field") or kwargs.get("sortField") or kwargs.get("sort_by")
-    if not sort_f or str(sort_f) in ["created_at", "undefined", "null", "", "default"]:
-        sort_f = "creation"
-        
-    sort_d = kwargs.get("sort_direction") or kwargs.get("sortDirection") or kwargs.get("order")
-    if not sort_d or str(sort_d).lower() not in ["asc", "desc"]:
-        sort_d = "desc"
-
     try:
+        filters = {}
+        
+        if sector: filters["sector"] = sector
+        if state: filters["state"] = state
+        if source_name: filters["source_name"] = source_name
+        
+        # 1. Safe Year Filtering
+        year = kwargs.get("year")
+        year_mode = kwargs.get("yearMode", "close")
+        if year:
+            date_field = "close_date" if year_mode == "close" else "published_date"
+            filters[date_field] = ["between", [f"{year}-01-01", f"{year}-12-31"]]
+        
+        # 2. Strict Status Catch-All
+        requested_status = "open"
+        if status:
+            clean = str(status).lower()
+            if 'upcoming' in clean:
+                requested_status = "upcoming"
+                filters["status"] = ["in", ["upcoming", "Upcoming", "pursued", "Pursued"]]
+            elif 'closed' in clean:
+                requested_status = "closed"
+                filters["status"] = ["in", [
+                    "closed", "Closed", 
+                    "won", "Won", 
+                    "lost", "Lost", 
+                    "awarded", "Awarded", 
+                    "withdrawn", "Withdrawn"
+                ]]
+            else:
+                requested_status = "open"
+                filters["status"] = ["in", ["open", "Open", "active", "Active"]]
+                
+        if search: filters["title"] = ["like", f"%{search}%"]
+
+        page = cint(page) if cint(page) > 0 else 1
+        page_size = cint(page_size) if cint(page_size) > 0 else 15
+        start = (page - 1) * page_size
+
+        # 3. Indestructible Sorting Logic
+        raw_sort_f = kwargs.get("sortField") or kwargs.get("sort_field") or "creation"
+        sort_f = str(raw_sort_f).lower()
+        if sort_f in ["created_at", "default", "undefined", "null", ""]:
+            sort_f = "creation"
+            
+        raw_sort_d = kwargs.get("sortDirection") or kwargs.get("sort_direction") or "desc"
+        sort_d = "DESC" if str(raw_sort_d).lower() == "desc" else "ASC"
+            
+        order_string = f"{sort_f} {sort_d}"
+
+        # 4. Fetch Tenders (Removed SQL aliasing on 'creation' to prevent Frappe crash)
         tenders = frappe.get_all(
             "War Room Tender",
             filters=filters,
-            fields=["name as id", "title", "agency", "contract_value", "sector", "state", "status", "close_date", "published_date", "source_name", "source_id", "source_url", "creation as created_at"],
+            fields=["name as id", "title", "agency", "contract_value", "sector", "state", "status", "close_date", "published_date", "source_name", "source_id", "source_url", "creation"],
             limit_start=start,
             limit_page_length=page_size,
-            order_by=f"`{sort_f}` {sort_d}"
+            order_by=order_string
         )
+
+        # 5. Manually map the data for React
+        for t in tenders:
+            t["status"] = requested_status
+            t["created_at"] = t.get("creation") # Safely inject 'created_at' without SQL aliasing!
+
+        return {
+            "items": tenders,
+            "total": frappe.db.count("War Room Tender", filters=filters),
+            "page": page,
+            "page_size": page_size
+        }
     except frappe.ValidationError as e:
         frappe.logger().error(f"Tender Sort Failed: {e!s}")
         tenders = frappe.get_all(
@@ -72,15 +90,6 @@ def get_tenders(page=1, page_size=15, search=None, sector=None, state=None, stat
             order_by="creation desc"
         )
 
-    for t in tenders:
-        t["status"] = requested_status
-
-    return {
-        "items": tenders,
-        "total": frappe.db.count("War Room Tender", filters=filters),
-        "page": page,
-        "page_size": page_size
-    }
 
 @frappe.whitelist(allow_guest=False)
 def get_tender_by_id(id):
@@ -121,15 +130,38 @@ def get_overview_stats():
 
 @frappe.whitelist(allow_guest=False)
 def get_source_stats():
-    return {"sources": {}}
+    # Group by source_name and count the tenders
+    stats = frappe.db.sql("""
+        SELECT source_name, COUNT(name) as count
+        FROM `tabWar Room Tender`
+        GROUP BY source_name
+    """, as_dict=True)
+    
+    # React expects a dictionary map like: {"austender": 50, "tenders_net": 12}
+    sources = {row.source_name: row.count for row in stats if row.source_name}
+    return {"sources": sources}
 
 @frappe.whitelist(allow_guest=False)
 def get_sector_stats():
-    return []
+    # Group by sector, count tenders, and sum the total value
+    return frappe.db.sql("""
+        SELECT sector, COUNT(name) as count, SUM(contract_value) as total_value
+        FROM `tabWar Room Tender`
+        WHERE sector IS NOT NULL AND sector != ''
+        GROUP BY sector
+        ORDER BY count DESC
+    """, as_dict=True)
 
 @frappe.whitelist(allow_guest=False)
 def get_state_stats():
-    return []
+    # Group by state, count tenders, and sum the total value
+    return frappe.db.sql("""
+        SELECT state, COUNT(name) as count, SUM(contract_value) as total_value
+        FROM `tabWar Room Tender`
+        WHERE state IS NOT NULL AND state != ''
+        GROUP BY state
+        ORDER BY count DESC
+    """, as_dict=True)
 
 # ==========================================
 # 3. ALERTS & SAVED SEARCHES API
