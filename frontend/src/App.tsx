@@ -78,9 +78,9 @@ export default function App() {
             <Route path="reports"   element={<ReportsPage />} />
             <Route path="alerts"    element={<AlertsPage />} />
             <Route path="data-sources" element={<DataSourcesPage />} />
+            <Route path="calendar"  element={<CalendarPage/>}/>
             <Route path="settings"  element={<SettingsPage />} />
             <Route path="customers" element={<Navigate to="/" replace />} />
-            <Route path="calendar"  element={<CalendarPage/>}/>
           </Route>
 
           {/* Fallback */}
