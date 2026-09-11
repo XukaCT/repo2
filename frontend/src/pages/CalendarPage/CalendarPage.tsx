@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
-export function CalendarPage() {
-    return (<></>)
+export default function CalendarPage() {
+    return (<>Hi bro</>)
 }

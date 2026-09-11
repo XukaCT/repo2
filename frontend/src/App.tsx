@@ -15,6 +15,7 @@ import ReportsPage from './pages/ReportsPage/ReportsPage';
 import AlertsPage from './pages/AlertsPage/AlertsPage';
 import DataSourcesPage from './pages/DataSourcesPage/DataSourcesPage';
 import SettingsPage from './pages/SettingsPage/SettingsPage';
+import CalendarPage from './pages/CalendarPage/CalendarPage'
 
 // Store
 import { useUIStore } from './store/ui.store';
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="data-sources" element={<DataSourcesPage />} />
             <Route path="settings"  element={<SettingsPage />} />
             <Route path="customers" element={<Navigate to="/" replace />} />
+            <Route path="calendar"  element={<CalendarPage/>}/>
           </Route>
 
           {/* Fallback */}
