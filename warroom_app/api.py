@@ -1,3 +1,5 @@
+import csv
+import io
 import frappe
 from frappe.utils import cint
 
@@ -281,18 +283,48 @@ def pursue_tender(tender_id):
     if existing_bid:
         return {"status": "error", "message": "A Bid Record already exists for this tender.", "bid_id": existing_bid}
 
+    # 1. AUTO-CREATE CUSTOMER IF IT DOESN'T EXIST
+    if tender.agency and not frappe.db.exists("Customer", tender.agency):
+        try:
+            new_customer = frappe.get_doc({
+                "doctype": "Customer",
+                "customer_name": tender.agency,
+                "customer_group": "Commercial", 
+                "territory": "All Territories"  
+            })
+            new_customer.insert(ignore_permissions=True)
+        except frappe.exceptions.DuplicateEntryError:
+            # FIXED: This will now push errors directly to your Frappe Error Log UI
+            frappe.log_error(message=frappe.get_traceback(), title=f"Customer Auto-Create Failed: {tender.agency}")
+
+    # 2. SECTOR TRANSLATION
+    sector_map = {
+        "it_services": "IT",
+        "healthcare": "Healthcare",
+        "construction": "Construction",
+        "cleaning": "Other",
+        "facility_management": "Other",
+        "transportation": "Other",
+        "other": "Other"
+    }
+    mapped_sector = sector_map.get(str(tender.sector).lower(), "Other") if tender.sector else "Other"
+
+    # 3. CREATE THE BID RECORD
     new_bid = frappe.get_doc({
         "doctype": "Bid Record",
-        "bid_name": tender.title,
-        "client_name": tender.agency, 
-        "sector": tender.sector,
-        "estimated_value": tender.contract_value,
+        "bid_title": tender.title,                           
+        "customer": tender.agency,                          
+        "sector": mapped_sector,                             
+        "estimated_contract_value": tender.contract_value,   
         "submission_deadline": tender.close_date,
         "war_room_reference": tender.name,
-        "bid_status": "Draft"
+        "bid_status": "Draft",
+        "owner": frappe.session.user  
     })
     
     new_bid.insert(ignore_permissions=True)
+    
+    # 4. UPDATE WAR ROOM STATUS
     frappe.db.set_value("War Room Tender", tender.name, "status", "pursued")
     frappe.db.commit()
 
@@ -608,3 +640,98 @@ def get_pipeline_by_month(**kwargs):
         "data": list(months_dict.values()),
         "sources": list(sources)
     }
+
+# ==========================================
+# 7. REPORTS & EXPORTS
+# ==========================================
+@frappe.whitelist(allow_guest=False)
+def export_tenders_csv(sector=None, state=None, status=None, search=None, **kwargs):
+    filters = {}
+    
+    # 1. Apply the same filters the UI uses
+    if sector and str(sector).lower() != "all": filters["sector"] = sector
+    if state and str(state).lower() != "all": filters["state"] = state
+    
+    if status and str(status).lower() != "all":
+        clean = str(status).lower()
+        if 'upcoming' in clean:
+            filters["status"] = ["in", ["upcoming", "Upcoming", "pursued", "Pursued"]]
+        elif 'closed' in clean:
+            filters["status"] = ["in", ["closed", "Closed", "won", "Won", "lost", "Lost", "awarded", "Awarded", "withdrawn", "Withdrawn"]]
+        else:
+            filters["status"] = ["in", ["open", "Open", "active", "Active"]]
+            
+    if search: filters["title"] = ["like", f"%{search}%"]
+
+    # 2. Fetch the matching records
+    tenders = frappe.get_all(
+        "War Room Tender",
+        filters=filters,
+        fields=["name", "title", "agency", "contract_value", "sector", "state", "status", "close_date", "source_name"],
+        limit=5000,
+        order_by="creation desc"
+    )
+
+    # 3. Build the CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write Headers
+    writer.writerow(["Tender ID", "Title", "Agency", "Estimated Value", "Sector", "State", "Status", "Close Date", "Source"])
+
+    # Write Data Rows
+    for t in tenders:
+        writer.writerow([
+            t.name,
+            t.title,
+            t.agency,
+            f"${t.contract_value:,.2f}" if t.contract_value else "$0.00",
+            t.sector,
+            t.state,
+            t.status,
+            t.close_date,
+            t.source_name
+        ])
+
+    # 4. Return the raw text to React
+    return {"status": "success", "csv_data": output.getvalue()}
+
+# ==========================================
+# 8. OPPORTUNITY CRM BRIDGE
+# ==========================================
+@frappe.whitelist(allow_guest=False)
+def create_opportunity_from_bid(bid_name):
+    if not frappe.db.exists("Bid Record", bid_name):
+        frappe.throw("Bid Record not found", frappe.DoesNotExistError)
+        
+    bid = frappe.get_doc("Bid Record", bid_name)
+    
+    # Check if an opportunity is already linked
+    if bid.opportunity:
+        return {"status": "error", "message": "An Opportunity is already linked to this Bid Record.", "opportunity_id": bid.opportunity}
+
+    try:
+        # 1. Create the CRM Opportunity
+        opportunity = frappe.get_doc({
+            "doctype": "Opportunity",
+            "opportunity_from": "Customer",
+            "party_name": bid.customer,
+            "opportunity_amount": bid.estimated_contract_value,
+            "status": "Open",
+            "source": "War Room",
+            "with_items": 0
+        })
+        opportunity.insert(ignore_permissions=True)
+        
+        # 2. Stamp the new Opportunity ID back into the Bid Record!
+        bid.opportunity = opportunity.name
+        bid.bid_status = "In Progress" # Optional: update status to reflect it's moving forward
+        bid.save(ignore_permissions=True)
+        
+        frappe.db.commit()
+        
+        return {"status": "success", "new_opportunity_id": opportunity.name}
+        
+    except frappe.exceptions.ValidationError as e:
+        frappe.log_error(message=frappe.get_traceback(), title=f"Failed to create Opportunity for Bid: {bid_name}")
+        return {"status": "error", "message": str(e)}
