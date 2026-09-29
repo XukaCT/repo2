@@ -18,7 +18,8 @@
   "source_name",
   "source_id",
   "source_url",
-  "description"
+  "description",
+  "lead_id"
  ],
  "fields": [
   {
@@ -88,12 +89,18 @@
    "fieldname": "war_room_tender_section",
    "fieldtype": "Section Break",
    "label": "War Room Tender"
+  },
+  {
+   "fieldname": "lead_id",
+   "fieldtype": "Link",
+   "label": "Linked Lead",
+   "options": "Lead"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-08 15:17:45.778085",
+ "modified": "2026-09-22 15:17:51.439409",
  "modified_by": "Administrator",
  "module": "Warroom",
  "name": "War Room Tender",

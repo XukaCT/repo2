@@ -276,60 +276,74 @@ def create_saved_search(name, sector=None, state=None, min_value=0, max_value=0,
 def pursue_tender(tender_id):
     if not frappe.db.exists("War Room Tender", tender_id):
         frappe.throw("Tender not found", frappe.DoesNotExistError)
-        
+            
     tender = frappe.get_doc("War Room Tender", tender_id)
     
-    existing_bid = frappe.db.exists("Bid Record", {"war_room_reference": tender.name})
-    if existing_bid:
-        return {"status": "error", "message": "A Bid Record already exists for this tender.", "bid_id": existing_bid}
+    # 1. IDEMPOTENCY & TRACEABILITY
+    if tender.get("lead_id") and frappe.db.exists("Lead", tender.lead_id):
+        return {"status": "error", "message": "A Lead already exists for this tender.", "lead_id": tender.lead_id}
 
-    # 1. AUTO-CREATE CUSTOMER IF IT DOESN'T EXIST
-    if tender.agency and not frappe.db.exists("Customer", tender.agency):
-        try:
-            new_customer = frappe.get_doc({
-                "doctype": "Customer",
-                "customer_name": tender.agency,
-                "customer_group": "Commercial", 
-                "territory": "All Territories"  
-            })
-            new_customer.insert(ignore_permissions=True)
-        except frappe.exceptions.DuplicateEntryError:
-            # FIXED: This will now push errors directly to your Frappe Error Log UI
-            frappe.log_error(message=frappe.get_traceback(), title=f"Customer Auto-Create Failed: {tender.agency}")
+    try:
+        # 2. CREATE THE CRM LEAD
+        new_lead = frappe.get_doc({
+            "doctype": "Lead",
+            "lead_name": tender.title,
+            "company_name": tender.agency,
+            "source": "War Room",
+            "custom_estimated_value": tender.contract_value,
+            "custom_war_room_reference": tender.name,
+            "custom_sector": tender.sector,
+            "custom_state": tender.state,
+            "custom_close_date": tender.close_date,
+            "custom_source_url": tender.source_url
+        })
+        
+        new_lead.insert(ignore_permissions=True)
+        
+        # 3. UPDATE WAR ROOM STATUS & LINK THE LEAD ID
+        frappe.db.set_value("War Room Tender", tender.name, {
+            "status": "pursued",
+            "lead_id": new_lead.name 
+        })
+        frappe.db.commit()
 
-    # 2. SECTOR TRANSLATION
-    sector_map = {
-        "it_services": "IT",
-        "healthcare": "Healthcare",
-        "construction": "Construction",
-        "cleaning": "Other",
-        "facility_management": "Other",
-        "transportation": "Other",
-        "other": "Other"
+        # 4. AUTOMATE CALENDAR EVENTS
+        create_tender_calendar_events(tender, new_lead.name)
+        
+        return {"status": "success", "new_lead_id": new_lead.name}
+        
+    except Exception as e:
+        frappe.log_error(message=frappe.get_traceback(), title=f"Lead Creation Failed: {tender.name}")
+        return {"status": "error", "message": str(e)}
+
+
+def create_tender_calendar_events(tender, lead_id):
+    """Generates ERPNext Calendar Events for key tender deadlines."""
+    
+    # You can expand this dictionary later if you add fields like 'site_visit_date' to War Room Tender
+    key_dates = {
+        "Submission Deadline": tender.get("close_date")
     }
-    mapped_sector = sector_map.get(str(tender.sector).lower(), "Other") if tender.sector else "Other"
-
-    # 3. CREATE THE BID RECORD
-    new_bid = frappe.get_doc({
-        "doctype": "Bid Record",
-        "bid_title": tender.title,                           
-        "customer": tender.agency,                          
-        "sector": mapped_sector,                             
-        "estimated_contract_value": tender.contract_value,   
-        "submission_deadline": tender.close_date,
-        "war_room_reference": tender.name,
-        "bid_status": "Draft",
-        "owner": frappe.session.user  
-    })
     
-    new_bid.insert(ignore_permissions=True)
-    
-    # 4. UPDATE WAR ROOM STATUS
-    frappe.db.set_value("War Room Tender", tender.name, "status", "pursued")
-    frappe.db.commit()
-
-    return {"status": "success", "new_bid_id": new_bid.name}
-
+    for event_title, event_date in key_dates.items():
+        if event_date:
+            event = frappe.get_doc({
+                "doctype": "Event",
+                "subject": f"{event_title}: {tender.title}",
+                "starts_on": event_date,
+                "event_type": "Private",
+                "send_reminder": 1, # Leverages ERPNext's native reminder engine
+                "description": f"Auto-generated deadline for Lead: {lead_id}\nSource: {tender.source_url}",
+            })
+            
+            # Assign the event to the user who clicked 'Pursue' (The BD Owner)
+            event.append("event_participants", {
+                "reference_doctype": "User",
+                "reference_docname": frappe.session.user
+            })
+            
+            event.insert(ignore_permissions=True)
+            frappe.db.commit()
 # ==========================================
 # 5. ANALYTICS DASHBOARD API
 # ==========================================

@@ -77,10 +77,10 @@ export default function TenderDetailModal({ tender, onClose }: Props) {
         const result = await tendersApi.pushToBidTracker(tender.id);
         
         if (result.status === 'success') {
-           alert(`Bid Created successfully! ID: ${result.new_bid_id}`);
+           alert(`Lead Created successfully! ID: ${result.new_bid_id}`);
            onClose();
         } else {
-           alert(result.message || "Failed to create bid.");
+           alert(result.message || "Failed to create lead.");
         }
       } catch (err) {
         alert("Failed to connect to the server.");
