@@ -9,7 +9,6 @@
   "war_room_tender_section",
   "title",
   "agency",
-  "description",
   "contract_value",
   "sector",
   "state",
@@ -18,7 +17,9 @@
   "published_date",
   "source_name",
   "source_id",
-  "source_url"
+  "source_url",
+  "description",
+  "lead_id"
  ],
  "fields": [
   {
@@ -45,19 +46,19 @@
    "fieldname": "sector",
    "fieldtype": "Select",
    "label": "Sector",
-   "options": "facility_management\\nconstruction\\ncleaning\\nit_services\\nhealthcare\\ntransportation\\nutilities\\nother"
+   "options": "facility_management\nconstruction\ncleaning\nit_services\nhealthcare\ntransportation\nutilities\nother"
   },
   {
    "fieldname": "state",
    "fieldtype": "Select",
    "label": "State",
-   "options": "NSW\\nVIC\\nQLD\\nSA\\nWA\\nACT\\nNT\\nTAS\\nFederal"
+   "options": "NSW\nVIC\nQLD\nSA\nWA\nACT\nNT\nTAS\nFederal"
   },
   {
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "open\\nclosed\\nupcoming\\nactive"
+   "options": "open\nclosed\nupcoming\nactive"
   },
   {
    "fieldname": "close_date",
@@ -88,12 +89,18 @@
    "fieldname": "war_room_tender_section",
    "fieldtype": "Section Break",
    "label": "War Room Tender"
+  },
+  {
+   "fieldname": "lead_id",
+   "fieldtype": "Link",
+   "label": "Linked Lead",
+   "options": "Lead"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-13 15:12:52.542702",
+ "modified": "2026-09-22 15:17:51.439409",
  "modified_by": "Administrator",
  "module": "Warroom",
  "name": "War Room Tender",

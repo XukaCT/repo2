@@ -23,7 +23,7 @@ import {
   showBrowserNotification,
 } from '../../utils/browserNotifications';
 import { isAxiosError } from 'axios';
-import apiClient from '../../api/client';
+import {apiClient} from '../../api/client';
 import styles from './SettingsPage.module.css';
 
 const INVITE_STATUS_CLASS: Record<string, string> = {

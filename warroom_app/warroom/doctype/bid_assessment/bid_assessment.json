@@ -1,0 +1,149 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-10-07 09:52:02.846137",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ryic",
+  "amended_from",
+  "opportunity",
+  "estimated_value",
+  "sector",
+  "customer",
+  "strategy_score",
+  "relationship_score",
+  "incumbent_score",
+  "competitors_score",
+  "hook_score",
+  "financial_score",
+  "operational_score",
+  "risk_score",
+  "total_score",
+  "decision"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ryic",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Bid Assessment",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "opportunity",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "opportunity",
+   "options": "Opportunity",
+   "reqd": 1
+  },
+  {
+   "fieldname": "strategy_score",
+   "fieldtype": "Int",
+   "label": "strategy score"
+  },
+  {
+   "fieldname": "relationship_score",
+   "fieldtype": "Int",
+   "label": "relationship score"
+  },
+  {
+   "fieldname": "incumbent_score",
+   "fieldtype": "Int",
+   "label": "incumbent score"
+  },
+  {
+   "fieldname": "competitors_score",
+   "fieldtype": "Int",
+   "label": "competitors score"
+  },
+  {
+   "fieldname": "hook_score",
+   "fieldtype": "Int",
+   "label": "hook score"
+  },
+  {
+   "fieldname": "financial_score",
+   "fieldtype": "Int",
+   "label": "financial score"
+  },
+  {
+   "fieldname": "operational_score",
+   "fieldtype": "Int",
+   "label": "operational score"
+  },
+  {
+   "fieldname": "risk_score",
+   "fieldtype": "Int",
+   "label": "risk score"
+  },
+  {
+   "fieldname": "total_score",
+   "fieldtype": "Int",
+   "label": "total score",
+   "read_only": 1
+  },
+  {
+   "fieldname": "decision",
+   "fieldtype": "Select",
+   "label": "decision",
+   "options": "GO\nCONDITIONAL\nNO GO"
+  },
+  {
+   "fetch_from": "opportunity.customer_name",
+   "fieldname": "customer",
+   "fieldtype": "Data",
+   "label": "Customer"
+  },
+  {
+   "fetch_from": "opportunity.custom_estimated_value",
+   "fieldname": "estimated_value",
+   "fieldtype": "Currency",
+   "label": "estimated_value"
+  },
+  {
+   "fetch_from": "opportunity.custom_sector",
+   "fieldname": "sector",
+   "fieldtype": "Data",
+   "label": "sector"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-10-07 11:07:59.376277",
+ "modified_by": "Administrator",
+ "module": "Warroom",
+ "name": "Bid Assessment",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

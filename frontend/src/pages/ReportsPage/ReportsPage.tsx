@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { apiClient } from '../../api/client';
 import {
   Download, FileText, BarChart3,
   TrendingUp, Database,
@@ -6,10 +7,46 @@ import {
 import { useOverviewStats, useSectorStats, useStateStats } from '../../hooks/useTenders';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 import styles from './ReportsPage.module.css';
+import { useState } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 export default function ReportsPage() {
+  const [isExporting, setIsExporting] = useState(false);
+  
+  const handleExport = async () => {
+        setIsExporting(true);
+        try {
+            // Note: We use your apiClient instead of frappe.call
+            const response = await apiClient.get('/api/method/warroom_app.api.export_tenders_csv', {
+                params: { 
+                    sector: "all", 
+                    state: "all",
+                    status: "open" 
+                }
+            });
+
+            // Frappe returns data inside response.data.message
+            if (response.data && response.data.message && response.data.message.csv_data) {
+                // Convert the raw string into a Blob
+                const blob = new Blob([response.data.message.csv_data], { type: 'text/csv;charset=utf-8;' });
+                const url = window.URL.createObjectURL(blob);
+                
+                // Create an invisible link, click it, and destroy it
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `WarRoom_Export_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        } catch (error) {
+            console.error("Export failed:", error);
+            alert("Failed to export CSV. Check console for details.");
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
   const { data: overview } = useOverviewStats();
   const { data: sectors  } = useSectorStats();
@@ -39,7 +76,6 @@ export default function ReportsPage() {
   const today = new Date().toISOString().split('T')[0];
   const exportSectorCSV    = () => downloadFromBackend('sector',     `warroom-sector-report-${today}.csv`);
   const exportStateCSV     = () => downloadFromBackend('regional',   `warroom-regional-report-${today}.csv`);
-  const exportOverviewCSV  = () => downloadFromBackend('overview',   `warroom-overview-report-${today}.csv`);
   const exportHighValueCSV = () => downloadFromBackend('high-value', `warroom-high-value-report-${today}.csv`);
 
   const statCards = [
@@ -51,9 +87,12 @@ export default function ReportsPage() {
 
   const quickExports = [
     { title:'Sector Analysis',      desc:`${sectors?.length ?? 0} sectors - Server-generated CSV`,           icon:BarChart3,  color:'#7C3AED', action:exportSectorCSV,    ready:!!sectors?.length },
-    { title:'Regional Report',      desc:`${states?.length ?? 0} states - Contract distribution`,             icon:TrendingUp, color:'#3B82F6', action:exportStateCSV,     ready:!!states?.length  },
-    { title:'Full Overview Export', desc:`${formatNumber(overview?.total_tenders)} contracts - All metrics`,  icon:Database,   color:'#10B981', action:exportOverviewCSV, ready:!!overview       },
-    { title:'High-Value Contracts', desc:'Real tenders above $1M - Sorted by value',                          icon:FileText,   color:'#F59E0B', action:exportHighValueCSV, ready:true              },
+    { title:'Regional Report',      desc:`${states?.length ?? 0} states - Contract distribution`,            icon:TrendingUp, color:'#3B82F6', action:exportStateCSV,     ready:!!states?.length  },
+    
+    // 👇 FIXED: Swapped 'exportOverviewCSV' for 'handleExport' and disabled it while exporting
+    { title:'Full Overview Export', desc:`${formatNumber(overview?.total_tenders)} contracts - All metrics`, icon:Database,   color:'#10B981', action:handleExport,       ready: !!overview && !isExporting },
+    
+    { title:'High-Value Contracts', desc:'Real tenders above $1M - Sorted by value',                         icon:FileText,   color:'#F59E0B', action:exportHighValueCSV, ready:true              },
   ];
 
   return (
