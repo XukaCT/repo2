@@ -284,7 +284,7 @@ def pursue_tender(tender_id):
         return {"status": "error", "message": "A Lead already exists for this tender.", "lead_id": tender.lead_id}
 
     try:
-        # 2. CREATE THE CRM LEAD
+        # 2A. CREATE THE TRADITIONAL ERPNEXT LEAD (Keeps the Bid Tracker working)
         new_lead = frappe.get_doc({
             "doctype": "Lead",
             "lead_name": tender.title,
@@ -297,12 +297,11 @@ def pursue_tender(tender_id):
             "custom_close_date": tender.close_date,
             "custom_source_url": tender.source_url
         })
-        
         new_lead.insert(ignore_permissions=True)
         
         # 3. UPDATE WAR ROOM STATUS & LINK THE LEAD ID
         frappe.db.set_value("War Room Tender", tender.name, {
-            "status": "pursued",
+            "status": "upcoming",
             "lead_id": new_lead.name 
         })
         frappe.db.commit()
@@ -312,7 +311,7 @@ def pursue_tender(tender_id):
         
         return {"status": "success", "new_lead_id": new_lead.name}
         
-    except Exception as e:
+    except frappe.exceptions.DuplicateEntryError as e:
         frappe.log_error(message=frappe.get_traceback(), title=f"Lead Creation Failed: {tender.name}")
         return {"status": "error", "message": str(e)}
 
@@ -748,4 +747,74 @@ def create_opportunity_from_bid(bid_name):
         
     except frappe.exceptions.ValidationError as e:
         frappe.log_error(message=frappe.get_traceback(), title=f"Failed to create Opportunity for Bid: {bid_name}")
+        return {"status": "error", "message": str(e)}
+
+# ==========================================
+# 9. MATRIX TO BID RECORD BRIDGE
+# ==========================================
+@frappe.whitelist(allow_guest=False)
+def create_bid_from_opportunity(opportunity_id):
+    if not frappe.db.exists("Opportunity", opportunity_id):
+        frappe.throw("Opportunity not found")
+        
+    opp = frappe.get_doc("Opportunity", opportunity_id)
+    
+    # Idempotency check: prevent duplicate Bid Records
+    existing_bid = frappe.db.exists("Bid Record", {"opportunity": opportunity_id})
+    if existing_bid:
+        return {"status": "error", "message": "A Bid Record already exists for this Opportunity."}
+        
+    try:
+        # --- AUTO-CREATE CUSTOMER LOGIC ---
+        target_customer_name = opp.party_name
+        if opp.opportunity_from == "Lead":
+            lead = frappe.get_doc("Lead", opp.party_name)
+            target_customer_name = lead.company_name or lead.lead_name
+
+        if not frappe.db.exists("Customer", target_customer_name):
+            new_customer = frappe.get_doc({
+                "doctype": "Customer",
+                "customer_name": target_customer_name,
+                "customer_group": "Commercial",
+                "territory": "All Territories"
+            })
+            new_customer.insert(ignore_permissions=True)
+
+        # --- SECTOR MAPPING ---
+        # Map the raw War Room sector to the allowed Bid Record options
+        raw_sector = opp.get("custom_sector") or "other"
+        sector_map = {
+            "it_services": "IT",
+            "healthcare": "Healthcare",
+            "construction": "Construction",
+            "cleaning": "Other",
+            "facility_management": "Other",
+            "transportation": "Other",
+            "other": "Other"
+        }
+        mapped_sector = sector_map.get(raw_sector.lower(), "Other")
+
+        # --- CREATE THE BID RECORD ---
+        bid = frappe.get_doc({
+            "doctype": "Bid Record",
+            "bid_title": f"{target_customer_name} - {opp.name}",
+            "customer": target_customer_name,
+            "opportunity": opp.name,
+            "sector": mapped_sector,
+            # Pull from custom fields created by the Bid Tracker install.py
+            "estimated_contract_value": opp.get("custom_estimated_value") or opp.opportunity_amount or 0.0,
+            "bid_submission_date": opp.get("custom_close_date"),
+            "pursuit_decision_date": frappe.utils.today(),
+            "war_room_reference": opp.get("custom_war_room_reference"),
+            "bid_owner": frappe.session.user,
+            "bid_status": "Draft",
+            "notes": "Auto-generated from an approved Bid Assessment Matrix."
+        })
+        bid.insert(ignore_permissions=True)
+        frappe.db.commit()
+        
+        return {"status": "success", "new_bid_id": bid.name}
+        
+    except frappe.exceptions.DuplicateEntryError as e:
+        frappe.log_error(message=frappe.get_traceback(), title=f"Failed to create Bid from Opportunity: {opportunity_id}")
         return {"status": "error", "message": str(e)}
