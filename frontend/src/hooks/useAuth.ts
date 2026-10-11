@@ -1,4 +1,4 @@
-import {apiClient} from '../api/client';
+import { apiClient } from '../api/client';
 
 export function useAuth() {
   // Frappe manages the session via HTTP-only cookies, so we just provide a placeholder user object here 
@@ -21,11 +21,11 @@ export function useAuth() {
     }
   };
 
-  // ADD THIS: A temporary placeholder until we wire up Frappe's user update API
+  // A temporary placeholder until we wire up Frappe's user update API
   const updateUser = (updatedData: any) => {
     console.log("User update requested:", updatedData);
   };
 
-  // ADD updateUser to the return statement
+  // CRITICAL: 'user' must be returned here so other components can read it
   return { user, isAuthenticated: true, logout, updateUser };
 }

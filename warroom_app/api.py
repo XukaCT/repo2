@@ -8,6 +8,7 @@ from frappe.utils import cint
 # 1. TENDERS API
 # ==========================================
 @frappe.whitelist(allow_guest=False)
+@frappe.whitelist(allow_guest=False)
 def get_tenders(page=1, page_size=15, search=None, sector=None, state=None, status=None, source_name=None, **kwargs):
     try:
         filters = {}
@@ -16,14 +17,12 @@ def get_tenders(page=1, page_size=15, search=None, sector=None, state=None, stat
         if state: filters["state"] = state
         if source_name: filters["source_name"] = source_name
         
-        # 1. Safe Year Filtering
         year = kwargs.get("year")
         year_mode = kwargs.get("yearMode", "close")
         if year:
             date_field = "close_date" if year_mode == "close" else "published_date"
             filters[date_field] = ["between", [f"{year}-01-01", f"{year}-12-31"]]
         
-        # 2. Strict Status Catch-All
         requested_status = "open"
         if status:
             clean = str(status).lower()
@@ -44,12 +43,10 @@ def get_tenders(page=1, page_size=15, search=None, sector=None, state=None, stat
                 filters["status"] = ["in", ["open", "Open", "active", "Active"]]
                 
         if search: filters["title"] = ["like", f"%{search}%"]
-
         page = cint(page) if cint(page) > 0 else 1
         page_size = cint(page_size) if cint(page_size) > 0 else 15
         start = (page - 1) * page_size
 
-        # 3. Indestructible Sorting Logic
         raw_sort_f = kwargs.get("sortField") or kwargs.get("sort_field") or "creation"
         sort_f = str(raw_sort_f).lower()
         if sort_f in ["created_at", "default", "undefined", "null", ""]:
@@ -60,7 +57,6 @@ def get_tenders(page=1, page_size=15, search=None, sector=None, state=None, stat
             
         order_string = f"{sort_f} {sort_d}"
 
-        # 4. Fetch Tenders (Removed SQL aliasing on 'creation' to prevent Frappe crash)
         tenders = frappe.get_all(
             "War Room Tender",
             filters=filters,
@@ -70,28 +66,36 @@ def get_tenders(page=1, page_size=15, search=None, sector=None, state=None, stat
             order_by=order_string
         )
 
-        # 5. Manually map the data for React
         for t in tenders:
             t["status"] = requested_status
-            t["created_at"] = t.get("creation") # Safely inject 'created_at' without SQL aliasing!
-
+            t["created_at"] = t.get("creation")
+            
         return {
             "items": tenders,
             "total": frappe.db.count("War Room Tender", filters=filters),
             "page": page,
             "page_size": page_size
         }
-    except frappe.ValidationError as e:
-        frappe.logger().error(f"Tender Sort Failed: {e!s}")
+    except Exception as e:  # Fixed Exception Class
+        frappe.logger().error(f"Tender Sort Failed: {str(e)}")
+        # Fallback query
         tenders = frappe.get_all(
             "War Room Tender",
             filters=filters,
-            fields=["name as id", "title", "agency", "contract_value", "sector", "state", "status", "close_date", "published_date", "source_name", "source_id", "source_url", "creation as created_at"],
+            fields=["name as id", "title", "agency", "contract_value", "sector", "state", "status", "close_date", "published_date", "source_name", "source_id", "source_url", "creation"],
             limit_start=start,
             limit_page_length=page_size,
             order_by="creation desc"
         )
-
+        for t in tenders:
+            t["status"] = requested_status
+            t["created_at"] = t.get("creation")
+        return {
+            "items": tenders,
+            "total": frappe.db.count("War Room Tender", filters=filters),
+            "page": page,
+            "page_size": page_size
+        }
 
 @frappe.whitelist(allow_guest=False)
 def get_tender_by_id(id):
@@ -784,14 +788,17 @@ def create_bid_from_opportunity(opportunity_id):
         # Map the raw War Room sector to the allowed Bid Record options
         raw_sector = opp.get("custom_sector") or "other"
         sector_map = {
-            "it_services": "IT",
-            "healthcare": "Healthcare",
-            "construction": "Construction",
-            "cleaning": "Other",
-            "facility_management": "Other",
-            "transportation": "Other",
-            "other": "Other"
-        }
+        "facilities management": "facility_management",
+        "facility management": "facility_management",
+        "construction": "construction",
+        "cleaning": "cleaning",
+        "it services": "it_services",
+        "security": "security",           
+        "security services": "security",  
+        "healthcare": "healthcare",
+        "transportation": "transportation",
+        "utilities": "utilities"
+    }
         mapped_sector = sector_map.get(raw_sector.lower(), "Other")
 
         # --- CREATE THE BID RECORD ---
@@ -818,3 +825,100 @@ def create_bid_from_opportunity(opportunity_id):
     except frappe.exceptions.DuplicateEntryError as e:
         frappe.log_error(message=frappe.get_traceback(), title=f"Failed to create Bid from Opportunity: {opportunity_id}")
         return {"status": "error", "message": str(e)}
+
+# ==========================================
+# 10. Upload CSV Ingestion API
+# ==========================================
+@frappe.whitelist(allow_guest=False)
+def upload_tenders_csv(source_key=None, custom_name=None):
+    uploaded_file = frappe.request.files.get('file')
+    if not uploaded_file:
+        frappe.throw("No file found in the request.")
+    
+    try:
+        file_content = uploaded_file.read().decode('utf-8-sig')
+    except Exception as e:  # Fixed Exception Class
+        frappe.throw(f"Failed to read file: {str(e)}")
+        
+    csv_reader = csv.DictReader(io.StringIO(file_content))
+    inserted = 0
+    
+    # Strictly translate CSV values to your Frappe database options
+    sector_map = {
+        "facilities management": "facility_management",
+        "facility management": "facility_management",
+        "construction": "construction",
+        "cleaning": "cleaning",
+         "it services": "it_services",
+        "security": "security",           
+        "security services": "security",  
+        "healthcare": "healthcare",
+        "transportation": "transportation",
+        "utilities": "utilities"
+    }
+    
+    for row_idx, row in enumerate(csv_reader, start=2):
+        clean_row = {str(k).strip().upper(): str(v).strip() for k, v in row.items() if k}
+        
+        raw_sector = (clean_row.get("SECTOR") or "").lower().strip()
+        formatted_sector = sector_map.get(raw_sector, "other")
+        
+        try:
+            doc = frappe.get_doc({
+                "doctype": "War Room Tender",
+                "source_id": clean_row.get("TENDER_ID") or "",
+                "title": clean_row.get("TITLE") or "Unknown Tender",
+                "description": clean_row.get("DESCRIPTION") or "",
+                "agency": clean_row.get("AGENCY") or "Unknown Agency",
+                "state": clean_row.get("STATE") or "Federal",
+                "sector": formatted_sector,
+                
+                # --- NEW COLUMNS MAPPED HERE ---
+                "contract_value": clean_row.get("ESTIMATED_VALUE") or 0.0,
+                "close_date": clean_row.get("CLOSING_DATE") or None,
+                "published_date": clean_row.get("PUBLISHED_DATE") or None,
+                "source_url": clean_row.get("URL") or "",
+                # -------------------------------
+                
+                "status": "open",
+                "source_name": custom_name or source_key or "manual"
+            })
+            doc.insert(ignore_permissions=True)
+            inserted += 1
+            
+        except Exception as e:  # Fixed Exception Class
+            frappe.throw(f"Row {row_idx} failed: {str(e)}")
+            
+    if inserted == 0:
+        frappe.throw("No rows found. Check if the CSV is empty.")
+        
+    frappe.db.commit()
+    
+    return {
+        "id": frappe.utils.now(),
+        "job_name": custom_name or source_key or "CSV Upload",
+        "source_name": source_key,
+        "status": "complete",
+        "inserted": inserted,
+        "created_at": frappe.utils.now()
+    }
+
+@frappe.whitelist(allow_guest=False)
+def get_ingestion_jobs():
+    # Returns an empty list so the frontend doesn't crash while looking for upload history
+    return []
+
+@frappe.whitelist(allow_guest=False)
+def get_tender_sources():
+    return [
+        {"key": "austender", "label": "AusTender", "scope": "Federal / All States"},
+        {"key": "nsw_etender", "label": "NSW eTendering", "scope": "New South Wales"},
+        {"key": "qld_tenders", "label": "QTenders", "scope": "Queensland"},
+        {"key": "buying_for_victoria", "label": "Buying for Victoria", "scope": "Victoria"},
+        {"key": "sa_tenders", "label": "SA Tenders", "scope": "South Australia"},
+        {"key": "wa_tenders", "label": "WA Tenders", "scope": "Western Australia"},
+        {"key": "tenders_act", "label": "Tenders ACT", "scope": "ACT"},
+        {"key": "nt_tenders", "label": "Quotations and Tenders Online", "scope": "Northern Territory"},
+        {"key": "tas_tenders", "label": "Tasmanian Government Tenders", "scope": "Tasmania"},
+        {"key": "others", "label": "Other Portal (Custom)", "scope": "Custom"}
+    ]

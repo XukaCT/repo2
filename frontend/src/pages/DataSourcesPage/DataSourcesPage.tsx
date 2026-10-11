@@ -10,7 +10,6 @@ import {
   Globe, MapPin, Lock, Eye, EyeOff, ShieldAlert,
 } from 'lucide-react';
 import {apiClient} from '../../api/client';
-import { useAuth } from '../../hooks/useAuth';
 import { formatNumber } from '../../utils/formatters';
 import styles from './DataSourcesPage.module.css';
 
@@ -166,88 +165,9 @@ function DeleteModal({ job, onConfirm, onCancel, loading, error }: DeleteModalPr
   );
 }
 
-interface PasswordModalProps {
-  title: string;
-  subtitle: string;
-  confirmLabel: string;
-  onConfirm: (password: string) => void;
-  onCancel: () => void;
-  loading: boolean;
-  error: string;
-}
-
-function PasswordModal({ title, subtitle, confirmLabel, onConfirm, onCancel, loading, error }: PasswordModalProps) {
-  const [pw, setPw] = useState('');
-  const [showPw, setShowPw] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    window.setTimeout(() => inputRef.current?.focus(), 80);
-  }, []);
-
-  return (
-    <div className={styles.modalBackdrop} onClick={e => { if (e.target === e.currentTarget) onCancel(); }}>
-      <motion.div
-        className={styles.deleteModalCard}
-        initial={{ opacity: 0, scale: 0.95, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 12 }}
-        transition={{ duration: 0.18 }}
-      >
-        <div className={styles.deleteModalHeader}>
-          <div className={styles.deleteModalIcon}>
-            <ShieldAlert size={20} />
-          </div>
-          <div>
-            <h3 className={styles.deleteModalTitle}>{title}</h3>
-            <p className={styles.deleteModalSub}>{subtitle}</p>
-          </div>
-          <button className={styles.deleteModalClose} onClick={onCancel}>
-            <XCircle size={18} />
-          </button>
-        </div>
-
-        <div className={styles.deleteModalBody}>
-          <label className={styles.deleteModalLabel}>
-            <Lock size={13} /> Enter your password to continue
-          </label>
-          <div className={styles.deleteModalInputWrap}>
-            <input
-              ref={inputRef}
-              className={styles.deleteModalInput}
-              type={showPw ? 'text' : 'password'}
-              placeholder="Your current password"
-              value={pw}
-              onChange={e => setPw(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && pw && onConfirm(pw)}
-              disabled={loading}
-            />
-            <button className={styles.deleteModalEye} type="button" onClick={() => setShowPw(v => !v)}>
-              {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
-          </div>
-          {error && (
-            <motion.p className={styles.deleteModalError} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
-              <AlertCircle size={12} /> {error}
-            </motion.p>
-          )}
-        </div>
-
-        <div className={styles.deleteModalFooter}>
-          <button className={styles.cancelBtn} onClick={onCancel} disabled={loading}>Cancel</button>
-          <button className={styles.confirmDeleteBtn} onClick={() => onConfirm(pw)} disabled={loading || !pw}>
-            {loading ? <><Loader2 size={13} className={styles.spinning} /> Verifying...</> : <><Upload size={13} /> {confirmLabel}</>}
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
 // -- Main page -----------------------------------------------------------------
 export default function DataSourcesPage() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sourceDropRef = useRef<HTMLDivElement>(null);
 
@@ -267,15 +187,12 @@ export default function DataSourcesPage() {
   const [deleteTarget,  setDeleteTarget]  = useState<IngestionJob | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError,   setDeleteError]   = useState('');
-  const [uploadPasswordOpen, setUploadPasswordOpen] = useState(false);
-  const [uploadPasswordLoading, setUploadPasswordLoading] = useState(false);
-  const [uploadPasswordError, setUploadPasswordError] = useState('');
 
   const { data: sources = [] } = useQuery<SourceOption[]>({
     queryKey: ['ingestion-sources'],
     queryFn:  async () => {
-      const data = (await apiClient.get('/ingestion/sources')).data;
-      return Array.isArray(data) ? data : [];
+      const response = await apiClient.get('/api/method/warroom_app.api.get_tender_sources');
+      return Array.isArray(response.data.message) ? response.data.message : [];
     },
     staleTime: Infinity,
   });
@@ -283,8 +200,8 @@ export default function DataSourcesPage() {
   const { data: jobs = [], isLoading: jobsLoading, isFetching: jobsFetching, refetch } = useQuery<IngestionJob[]>({
     queryKey: ['ingestion-jobs'],
     queryFn:  async () => {
-      const data = (await apiClient.get('/ingestion/jobs')).data;
-      return Array.isArray(data) ? data : [];
+      const response = await apiClient.get('/api/method/warroom_app.api.get_ingestion_jobs');
+      return Array.isArray(response.data.message) ? response.data.message : [];
     },
     refetchInterval: 10000,
   });
@@ -295,9 +212,14 @@ export default function DataSourcesPage() {
       formData.append('file',        file);
       formData.append('source_key',  sourceKey);
       formData.append('custom_name', customName);
-      return (await apiClient.post('/ingestion/upload', formData, {
+      
+      // Updated to call the Frappe whitelisted method
+      const response = await apiClient.post('/api/method/warroom_app.api.upload_tenders_csv', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-      })).data as IngestionJob;
+      });
+      
+      // Frappe wraps JSON responses inside a "message" object
+      return response.data.message as IngestionJob;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['ingestion-jobs']   });
@@ -395,37 +317,14 @@ export default function DataSourcesPage() {
       setUploadError('Please enter a name for this portal'); return;
     }
     setUploadError('');
-    setUploadPasswordError('');
-    setUploadPasswordOpen(true);
-  };
-
-  const verifyPassword = async (password: string) => {
-    if (!user?.email) throw new Error('Missing account email');
-    const formData = new URLSearchParams();
-    formData.append('username', user.email);
-    formData.append('password', password);
-    const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8000'}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formData.toString(),
+    
+    // Bypass the password modal and upload immediately
+    setUploadNotice('Uploading file. Processing will continue in Uploaded History.');
+    uploadMutation.mutate({ 
+      file: selectedFile, 
+      sourceKey: selectedSource.key, 
+      customName: customName.trim() 
     });
-    if (!res.ok) throw new Error('Incorrect password');
-  };
-
-  const handleUploadPasswordConfirm = async (password: string) => {
-    if (!selectedFile || !selectedSource) return;
-    setUploadPasswordLoading(true);
-    setUploadPasswordError('');
-    try {
-      await verifyPassword(password);
-      setUploadPasswordOpen(false);
-      setUploadNotice('Uploading file. Processing will continue in Uploaded History.');
-      uploadMutation.mutate({ file: selectedFile, sourceKey: selectedSource.key, customName: customName.trim() });
-    } catch (error) {
-      setUploadPasswordError(error instanceof Error ? error.message : 'Could not verify password');
-    } finally {
-      setUploadPasswordLoading(false);
-    }
   };
 
   // -- Password-gated delete -------------------------------------------------
@@ -499,24 +398,7 @@ export default function DataSourcesPage() {
           )}
         </AnimatePresence>,
         document.body
-      )}
-
-      {createPortal(
-        <AnimatePresence>
-          {uploadPasswordOpen && (
-            <PasswordModal
-              title="Verify Upload"
-              subtitle="Confirm your password before importing this tender file."
-              confirmLabel="Upload File"
-              onConfirm={handleUploadPasswordConfirm}
-              onCancel={() => { setUploadPasswordOpen(false); setUploadPasswordError(''); }}
-              loading={uploadPasswordLoading}
-              error={uploadPasswordError}
-            />
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+      )}, 
 
       {/* -- Header -- */}
       <div className={styles.pageHeader}>
