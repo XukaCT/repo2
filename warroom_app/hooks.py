@@ -49,6 +49,13 @@ add_to_apps_screen = [
 doctype_js = {
     "Opportunity": "public/js/opportunity.js"
 }
+
+doc_events = {
+    "War Room Tender": {
+        "after_insert": "warroom_app.api.check_tender_against_saved_searches",
+        "on_update": "warroom_app.api.check_tender_against_saved_searches"
+    }
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}

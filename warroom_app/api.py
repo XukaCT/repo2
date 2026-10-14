@@ -183,6 +183,7 @@ def get_alerts():
 @frappe.whitelist(allow_guest=False)
 def mark_read(id):
     frappe.db.set_value("War Room Alert", id, "read", 1)
+    frappe.db.commit()
     return "success"
 
 @frappe.whitelist(allow_guest=False)
@@ -193,11 +194,18 @@ def mark_all_read():
 
 @frappe.whitelist(allow_guest=False)
 def delete_alert(id):
-    frappe.delete_doc("War Room Alert", id)
+    frappe.delete_doc("War Room Alert", id, ignore_permissions=True)
+    frappe.db.commit()
     return "success"
 
 @frappe.whitelist(allow_guest=False)
 def get_saved_searches():
+    # Automatically refresh match counts against the database before returning
+    searches = frappe.get_all("War Room Saved Search", pluck="name")
+    for s_name in searches:
+        s_doc = frappe.get_doc("War Room Saved Search", s_name)
+        evaluate_saved_search(s_doc, create_notification=False)
+
     return frappe.get_all(
         "War Room Saved Search", 
         fields=["name as id", "search_name as name", "sector", "state", "min_value", "max_value", "notifications", "match_count", "last_matched", "creation as created_at"], 
@@ -206,13 +214,22 @@ def get_saved_searches():
 
 @frappe.whitelist(allow_guest=False)
 def delete_saved_search(id):
-    frappe.delete_doc("War Room Saved Search", id)
+    frappe.delete_doc("War Room Saved Search", id, ignore_permissions=True)
+    frappe.db.commit()
     return "success"
 
 @frappe.whitelist(allow_guest=False)
 def toggle_saved_search(id):
     current_status = frappe.db.get_value("War Room Saved Search", id, "notifications")
-    frappe.db.set_value("War Room Saved Search", id, "notifications", 0 if current_status else 1)
+    new_status = 0 if current_status else 1
+    frappe.db.set_value("War Room Saved Search", id, "notifications", new_status)
+    frappe.db.commit()
+    
+    # If toggled ON, immediately scan the database and alert if matches exist
+    if new_status == 1:
+        s_doc = frappe.get_doc("War Room Saved Search", id)
+        evaluate_saved_search(s_doc, create_notification=True)
+        
     return "success"
 
 @frappe.whitelist(allow_guest=False)
@@ -222,20 +239,22 @@ def create_alert(title, description=None, type=None, priority=None):
         "title": title,
         "description": description,
         "type": type or "system",
-        "priority": priority or "medium"
+        "priority": priority or "medium",
+        "read": 0
     })
-    doc.insert()
+    doc.insert(ignore_permissions=True)
+    frappe.db.commit()
     return doc.as_dict()
 
 @frappe.whitelist(allow_guest=False)
 def create_saved_search(name, sector=None, state=None, min_value=0, max_value=0, notifications=1):
-    clean_sector = None
-    if sector and str(sector).lower() != "all":
-        clean_sector = str(sector)
+    clean_sector = ""
+    if sector and str(sector).strip().lower() not in ["all", "all_sectors", "all sectors", "none", "null", ""]:
+        clean_sector = str(sector).strip()
         
-    clean_state = None
-    if state and str(state).lower() != "all":
-        clean_state = str(state).upper()
+    clean_state = ""
+    if state and str(state).strip().lower() not in ["all", "all_states", "all states", "none", "null", ""]:
+        clean_state = str(state).strip().upper()
 
     try:
         clean_min = float(min_value) if min_value else 0.0
@@ -244,10 +263,24 @@ def create_saved_search(name, sector=None, state=None, min_value=0, max_value=0,
         clean_min = 0.0
         clean_max = 0.0
 
+    sector_map = {
+        "cleaning": "Cleaning",
+        "construction": "Construction",
+        "facility_management": "Facility Mgmt",
+        "it_services": "IT Services",
+        "security": "Security",
+        "healthcare": "Healthcare",
+        "transportation": "Transportation",
+        "utilities": "Utilities",
+        "other": "Other"
+    }
+
+    mapped_sector = sector_map.get(clean_sector.lower(), clean_sector) if clean_sector else ""
+
     doc = frappe.get_doc({
         "doctype": "War Room Saved Search",
         "search_name": name,
-        "sector": clean_sector,
+        "sector": mapped_sector,
         "state": clean_state,
         "min_value": clean_min,
         "max_value": clean_max,
@@ -255,24 +288,128 @@ def create_saved_search(name, sector=None, state=None, min_value=0, max_value=0,
         "match_count": 0,
         "last_matched": None
     })
+    doc.insert(ignore_permissions=True)
+    
+    # Force-overwrite Frappe DocType defaults (e.g., 'Cleaning' / 'NSW') if left as 'All'
+    frappe.db.set_value("War Room Saved Search", doc.name, {
+        "sector": mapped_sector,
+        "state": clean_state
+    }, update_modified=False)
+    doc.sector = mapped_sector
+    doc.state = clean_state
 
-    sector_map = {
-        "cleaning": "Cleaning",
-        "construction": "Construction",
-        "facility_management": "Facility Mgmt",
-        "it_services": "IT Services",
-        "healthcare": "Healthcare",
-        "transportation": "Transportation",
-        "other": "Other",
-        "all_sectors": "All Sectors"
+    # Immediately search the database and generate an alert if matches are found
+    evaluate_saved_search(doc, create_notification=bool(doc.notifications))
+    doc.reload()
+
+    # Return the exact aliased structure that the React frontend expects
+    return {
+        "id": doc.name,
+        "name": doc.search_name,
+        "sector": doc.sector,
+        "state": doc.state,
+        "min_value": doc.min_value,
+        "max_value": doc.max_value,
+        "notifications": doc.notifications,
+        "match_count": doc.match_count,
+        "last_matched": doc.last_matched,
+        "created_at": doc.creation
     }
 
-    if doc.sector in sector_map:
-        doc.sector = sector_map[doc.sector]
 
-    doc.insert()
-    return doc.as_dict()
+# ==========================================
+# 3B. SAVED SEARCH MATCHING ENGINE
+# ==========================================
+def evaluate_saved_search(search_doc, create_notification=True):
+    """Searches `tabWar Room Tender` using the Saved Search criteria, updates stats, and fires an alert."""
+    conditions = ["1=1"]
+    values = {}
 
+    # 1. Sector Filter (Handles both 'Facility Mgmt' and 'facility_management')
+    reverse_sector_map = {
+        "Cleaning": ["cleaning", "Cleaning"],
+        "Construction": ["construction", "Construction"],
+        "Facility Mgmt": ["facility_management", "Facility Mgmt"],
+        "IT Services": ["it_services", "IT Services"],
+        "Healthcare": ["healthcare", "Healthcare"],
+        "Transportation": ["transportation", "Transportation"],
+        "Other": ["other", "Other"]
+    }
+    if search_doc.sector and search_doc.sector != "All Sectors":
+        allowed_sectors = reverse_sector_map.get(search_doc.sector, [search_doc.sector])
+        conditions.append("sector IN %(sectors)s")
+        values["sectors"] = tuple(allowed_sectors)
+
+    # 2. State Filter
+    if search_doc.state and search_doc.state.upper() != "ALL":
+        conditions.append("UPPER(state) = %(state)s")
+        values["state"] = search_doc.state.upper()
+
+    # 3. Minimum Contract Value Filter
+    if search_doc.min_value and float(search_doc.min_value) > 0:
+        conditions.append("contract_value >= %(min_val)s")
+        values["min_val"] = float(search_doc.min_value)
+
+    # 4. Maximum Contract Value Filter
+    if search_doc.max_value and float(search_doc.max_value) > 0:
+        conditions.append("contract_value <= %(max_val)s")
+        values["max_val"] = float(search_doc.max_value)
+
+    where_clause = " AND ".join(conditions)
+
+    # Query matching tenders
+    matches = frappe.db.sql(f"""
+        SELECT name, title, agency, contract_value, state
+        FROM `tabWar Room Tender`
+        WHERE {where_clause}
+        ORDER BY creation DESC
+    """, values, as_dict=True)
+
+    match_count = len(matches)
+    last_matched = frappe.utils.now() if match_count > 0 else search_doc.last_matched
+
+    # Update the Saved Search record in the database
+    frappe.db.set_value("War Room Saved Search", search_doc.name, {
+        "match_count": match_count,
+        "last_matched": last_matched
+    }, update_modified=False)
+
+    # Generate a War Room Alert if notifications are ON and matches exist
+    if create_notification and search_doc.notifications and match_count > 0:
+        top_tender = matches[0]
+        alert_title = f"Saved Search Match: {search_doc.search_name} ({match_count} found)"
+        
+        # Prevent duplicate unread alerts for the exact same count
+        existing_alert = frappe.db.exists("War Room Alert", {
+            "title": alert_title,
+            "read": 0
+        })
+        
+        if not existing_alert:
+            val_str = f"${top_tender.contract_value:,.2f}" if top_tender.contract_value else "N/A"
+            frappe.get_doc({
+                "doctype": "War Room Alert",
+                "title": alert_title,
+                "description": f"Matched {match_count} tender(s). Latest: '{top_tender.title}' ({top_tender.agency or top_tender.state}) - Est. Value: {val_str}",
+                "type": "tender",
+                "priority": "high" if (top_tender.contract_value or 0) >= 500000 else "medium",
+                "read": 0
+            }).insert(ignore_permissions=True)
+
+    frappe.db.commit()
+    return match_count
+
+
+def check_tender_against_saved_searches(doc, method=None):
+    """Hook: Triggered automatically whenever a new War Room Tender is inserted or updated."""
+    active_searches = frappe.get_all(
+        "War Room Saved Search",
+        filters={"notifications": 1},
+        pluck="name"
+    )
+    for s_name in active_searches:
+        s_doc = frappe.get_doc("War Room Saved Search", s_name)
+        evaluate_saved_search(s_doc, create_notification=True)
 # ==========================================
 # 4. BID TRACKER INTEGRATION (THE BRIDGE)
 # ==========================================
